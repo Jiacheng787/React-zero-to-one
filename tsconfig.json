@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "ES2020",
+    "moduleResolution": "node",
+    "lib": [
+      "dom"
+    ],
+    // 编译 JS ，即让当前项目兼容 JS
+    "allowJs": true,
+    "jsx": "react-jsx",
+    // 不输出编译内容，只进行类型检查
+    "noEmit": true,
+    "sourceMap": true,
+    /* Strict Type-Checking Options */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    // 允许使用默认导入形式
+    "allowSyntheticDefaultImports": true,
+    // 启用 ES7 装饰器语法
+    "experimentalDecorators": true,
+    "skipLibCheck": true,
+  },
+  "include": [
+    "src"
+  ]
+}
