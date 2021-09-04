@@ -373,7 +373,33 @@ module.exports = {
 
 
 
-### 7) 引入 TypeScript
+### 7) @babel/preset-module
+
+这边的内容参考了卡老师的文章：
+
+[Chrome团队：如何曲线拯救KPI](https://juejin.cn/post/6989235408970186783)
+
+我们知道 `@babel/preset-env` 是根据 `target` 中配置的目标浏览器版本，将 ES 新语法编译为 ES5 语法。但是这样的编译是有代价的，就是编译之后代码量激增。
+
+事实上，某些高级语法，现代浏览器可能或多或少已经支持了，只是支持度不好。
+
+所以，一个更好的思路是：**将不支持的语法替换为已支持的语法**，这样就能省去特性实现这部分代码。
+
+![Screen Shot 2021-08-29 at 4.19.26 PM](README.assets/Screen Shot 2021-08-29 at 4.19.26 PM.png)
+
+这种浏览器间差异带来的优化空间，`Babel`团队很难独自完成。所以，`Chrome`团队与其合作开发了`@babel/preset-modules`，并且已经作为`bugfixes`参数集成到`@babel/preset-env`中。
+
+https://github.com/babel/preset-modules
+
+如果你安装的 `@babel/preset-env` 版本在 7.9.0 以上，只要通过 `bugfixes: true` 就可以启用 `@babel/preset-modules` 的特性，而且还支持自定义 `target` ，不用单独再安装插件。这个特性将在 Babel 8 被默认启用。
+
+根据官方的说法，启用这个特性之后，`@babel/preset-env` 会根据目标浏览器的支持程度，尝试将 broken syntax 编译为 closest *non-broken modern syntax* ，可以极大缩小编译后代码的体积（取决于 `target` 的配置和使用了多少新语法）。
+
+[@Babel/preset-env - Babel 官方文档](https://babeljs.io/docs/en/babel-preset-env/#bugfixes)
+
+
+
+### 8) 引入 TypeScript
 
 项目引入 `ts` 的话有两种方式：
 
@@ -466,7 +492,7 @@ module: {
 },
 resolve: {
   // 引入模块的时候可以省略这些后缀
-  extensions: ['.tsx', '.ts', '.jsx', '.js'],
+  extensions: ['.tsx', '.ts', '.jsx', '.js', '.json', '.d.ts'],
 }
 ```
 
@@ -506,7 +532,7 @@ ReactDOM.render(
 
 
 
-### 8) 引入 CSS
+### 9) 引入 CSS
 
 Webpack 默认只编译 JS 文件，如果还需要编译 CSS 文件，就需要装一下 CSS 的 `loader` ：
 
@@ -535,7 +561,7 @@ module: {
 
 
 
-### 9) 引入 Sass
+### 10) 引入 Sass
 
 `Sass` 是 `css` 的预编译器，可以让我们写样式更顺手。
 
@@ -608,7 +634,7 @@ export default App;
 
 
 
-### 10) 样式开启 sourceMap
+### 11) 样式开启 sourceMap
 
 通过上面的配置，我们看到样式只是定位到了 HTML 文件的 `style` 标签里面：
 
@@ -647,7 +673,7 @@ rules: [
 
 
 
-### 11) 使用 postcss autoprefixer 添加 CSS 前缀
+### 12) 使用 postcss autoprefixer 添加 CSS 前缀
 
 这里我们用到 `PostCSS` 这个 `loader`，它是一个 CSS **预处理工具**，可以为 CSS3 的属性**添加前缀**，样式格式校验（`stylelint`），提前使用 `CSS` 新特性，实现 `CSS` 模块化，防止 `CSS` 样式冲突。
 
@@ -739,7 +765,7 @@ module.exports = {
 
 
 
-### 12) Webpack 处理图片和字体
+### 13) Webpack 处理图片和字体
 
 在 Webpack 4 里面通常会用到 `url-loader` 和 `file-loader` ，在 Webpack 5 里面新增 Asset Modules ，不用再装额外的 loader ：
 
@@ -809,7 +835,7 @@ declare module '*.tiff'
 
 
 
-### 13) 模块路径别名
+### 14) 模块路径别名
 
 刚才我们引入图片使用了相对路径，但是滥用相对路径会导致维护上的问题，例如下面这个路径，我们很难定位到这个模块是从哪里引入的：
 
@@ -833,7 +859,7 @@ resolve: {
 
 
 
-### 14) Webpack 添加编译进度条
+### 15) Webpack 添加编译进度条
 
 到这边大部分 Webpack 的配置都已经配好了。如果在项目中引入了一个重量级的库，例如 `lodash` 、`moment` ，会发现打包比较慢而且没有进度信息。我们可以添加一个编译进度条：
 
@@ -858,7 +884,7 @@ module.exports = {
 
 
 
-### 15) 配置 ESLint
+### 16) 配置 ESLint
 
 可以配置 `eslint` 来进行语法上静态的检查，也可以对 `ts` 进行检查：
 
@@ -929,7 +955,7 @@ dist
 
 
 
-### 16) 配置 Prettier
+### 17) 配置 Prettier
 
 `prettier` 主要做代码风格上的检查，例如字符串双引号还是单引号、缩进、换行问题、是否加尾分号，类似这样的
 
@@ -1218,13 +1244,263 @@ module.exports = {
 
 ### 4) webpack 配置合并和提取公共配置
 
+在开发环境（development）和生产环境（production）配置文件有很多不同，但也有部分相同，为了不每次更换环境的时候都修改配置，我们就需要将配置文件做合并，和提取公共配置。
 
+我们使用 `webpack-merge` 工具，将两份配置文件合并：
+
+```bash
+$ npm i webpack-merge -D
+```
+
+然后我们在根目录建一个 `build` 文件夹，里面创建三个文件：
+
+```bash
+webpack.base.config.js
+webpack.dev.config.js
+webpack.prod.config.js
+```
+
+`webpack.base.config.js` 内容如下：
+
+```js
+const path = require('path');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const autoPrefixer = require("autoprefixer");
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const ProgressBarPlugin = require('progress-bar-webpack-plugin');
+const chalk = require('chalk');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+
+module.exports = {
+  // 由于配置文件不在根目录，注意路径引用问题
+  entry: path.resolve(__dirname, '../src/index.tsx'),
+  output: {
+    // 由于配置文件不在根目录，注意路径引用问题
+    path: path.resolve(__dirname, '../dist'),
+    filename: 'js/[contenthash].[name].js',
+    assetModuleFilename: 'static/[hash][ext]',
+  },
+  module: {
+    rules: [
+      // 这里不详细展开了
+    ]
+  },
+  resolve: {
+    extensions: ['.tsx', '.ts', '.jsx', '.js', '.json', '.d.ts'],
+    // 由于配置文件不在根目录，注意路径引用问题
+    alias: {
+      "@": path.resolve(__dirname, "../src"),
+      "@assets": path.resolve(__dirname, "../src/assets"),
+      "@components": path.resolve(__dirname, "../src/components"),
+    }
+  },
+  plugins: [
+    new ProgressBarPlugin({
+      format: `:msg [:bar] ${chalk.green.bold(':percent')} (:elapsed s)`
+    }),
+    new HtmlWebpackPlugin({
+      // 由于配置文件不在根目录，注意路径引用问题
+      template: path.join(__dirname, '../public/index.html'),
+      title: "react-zero-to-one",
+      filename: "index.html",
+      minify: {
+        collapseWhitespace: true,
+        removeComments: true,
+      }
+    }),
+    new MiniCssExtractPlugin({
+      filename: 'css/[name].[contenthash:8].css',
+      chunkFilename: '[id].css'
+    }),
+    new CleanWebpackPlugin()
+  ],
+  optimization: {
+    splitChunks: {
+      minSize: 3000,
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendors',
+          chunks: 'all',
+          // priority: 10,
+        },
+      }
+    }
+  }
+}
+```
+
+> 由于配置文件不在根目录，需要注意引用路径的问题
+
+`webpack.dev.confg.js` 内容如下：
+
+```js
+const path = require('path');
+const webpack = require("webpack");
+const { merge } = require("webpack-merge");
+const baseConfig = require("./webpack.base.config");
+
+module.exports = merge(baseConfig, {
+  mode: "development",
+  // 开发环境下开启 sourceMap
+  devtool: "source-map",
+  // 只有在开发环境才启用 devServer
+  devServer: {
+    // 由于配置文件不在根目录，注意路径引用问题
+    static: path.resolve(__dirname, '../dist'),
+    compress: true,
+    hot: true,
+    open: true,
+    host: 'localhost',
+    port: '8066'
+  },
+  plugins: [
+    new webpack.HotModuleReplacementPlugin(),
+  ]
+})
+```
+
+`webpack.prod.config.js` 内容如下：
+
+```js
+const { merge } = require("webpack-merge");
+const baseConfig = require("./webpack.base.config");
+
+module.exports = merge(baseConfig, {
+  mode: "production",
+  stats: "errors-only"
+})
+```
+
+这样改了之后，由于配置文件不在根目录，需要在 `package.json` 中手动指定：
+
+```json
+"scripts": {
+  "dev": "webpack-dev-server --config build/webpack.dev.config.js",
+  "build": "webpack --config build/webpack.prod.config.js",
+  "lint": "eslint src --fix"
+},
+```
 
 
 
 ### 5) 配置环境变量
 
+通常我们会在项目根目录下创建几个文件，用于配置环境变量：
 
+```js
+.env.development
+.env.production
+```
+
+在 Vue 的项目里面不用任何配置，直接添加上述文件就可以生效了。但是自己搭建的项目就有点头疼，好在找到一个第三方库 `dotenv` ：
+
+> https://www.npmjs.com/package/dotenv
+
+`dotenv` 的作用就是读取 `.env` 文件，把配置信息解析为一个对象，然后添加到 Node 的 `process.env` 里面。这个库可以同时用于前端和后端项目，前端环境变量主要用于配置后端环境地址，而后端环境变量通常用于配置数据库账号密码。
+
+按照官方文档的说明，在 `webpack.dev.config.js` 里面添加了如下代码：
+
+```js
+// ...
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env.development') });
+```
+
+但是重新编译之后，在项目中获取自定义的环境变量，例如 `process.env.REACT_APP_BASE` ，还是会报错：
+
+> Uncaught ReferenceError: process is not defined
+
+查阅 Webpack 文档发现，webpack 的环境变量和操作系统中的 `bash` 和 `cmd` 环境变量是不一样的：
+
+> https://webpack.docschina.org/guides/environment-variables/
+
+Webpack 的环境变量可以理解为全局变量，使用 `DefinePlugin` 进行配置：
+
+```js
+new webpack.DefinePlugin({
+  'process.env.NODE_ENV': JSON.stringify("development"),
+  'process.env.DEBUG': JSON.stringify(false),
+});
+```
+
+然后我们可以在业务组件中编写如下代码：
+
+```js
+if (process.env.NODE_ENV === 'production') {
+  console.log('Welcome to production');
+}
+if (process.env.DEBUG) {
+  console.log('Debugging output');
+}
+```
+
+Webpack 在打包编译的时候，会把我们在 `DefinePlugin` 中定义的变量替换为对应的值：
+
+```js
+if ('development' === 'production') {
+  // <-- default value is taken
+  console.log('Welcome to production');
+}
+if ('false') {
+  // <-- 'false' from DEBUG is taken
+  console.log('Debugging output');
+}
+```
+
+假如 `REACT_APP_BASE` 没有在 `DefinePlugin` 中配置，那么打包编译之后不会进行替换，还是保留 `process.env.REACT_APP_BASE` ，因此就会报错了。
+
+那么 Webpack 还提供了 `EnvironmentPlugin` ，用于简化 `DefinePlugin` 的配置：
+
+```js
+// 使用 EnvironmentPlugin 进行配置
+new webpack.EnvironmentPlugin(['NODE_ENV', 'DEBUG']);
+
+// 等价于下面的代码
+new webpack.DefinePlugin({
+  'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+  'process.env.DEBUG': JSON.stringify(process.env.DEBUG),
+});
+```
+
+> https://webpack.docschina.org/plugins/environment-plugin/
+
+顺着这个思路，我们先用 `dotenv` 把环境变量加载到 Node 的 `process.env` 中，然后再给 `EnvironmentPlugin` 传递一个 `key` 组成的数组，由 `EnvironmentPlugin` 从 `process.env` 读取对应的值传给 `DefinePlugin` ，这样在业务组件中就可以使用环境变量了：
+
+```js
+// webpack.dev.config.js
+const path = require('path');
+const webpack = require("webpack");
+// 将环境变量加载到 Node.js 的 process.env 中
+const envParams = require('dotenv').config({ path: path.resolve(__dirname, '../.env.development') });
+
+module.exports = {
+  // ...
+  plugins: [
+    // 传递一个 key 组成的数组
+    new webpack.EnvironmentPlugin(Object.keys(envParams.parsed))
+  ]
+}
+```
+
+其实可以把配置环境变量的代码放到 `webpack.base.config.js` 里面，但是经过试验发现在 Webpack 配置文件里面可能获取不到 `process.env.NODE_ENV` ：
+
+```js
+// webpack.base.config.js
+const path = require('path');
+const webpack = require("webpack");
+// 这边有可能获取不到，导致下面路径拼接出现错误
+console.log(process.env.NODE_ENV);
+const envParams = require('dotenv').config({ path: path.resolve(__dirname, '../.env.' + process.env.NODE_ENV) });
+
+module.exports = {
+  plugins: [
+    new webpack.EnvironmentPlugin(Object.keys(envParams.parsed))
+  ]
+}
+```
+
+因此建议在 `webpack.dev.config.js` 和 `webpack.prod.config.js` 中各放一份代码。
 
 
 
@@ -1246,5 +1522,10 @@ module.exports = {
 
 
 
+## 参考
 
+[2021年从零开发前端项目指南](https://juejin.cn/post/6999807899149008910)
 
+[手把手带你入门 Webpack4](https://juejin.cn/post/6844903912588181511)
+
+[【开源】一个 React + TS 项目模板](https://juejin.cn/post/6844904102355271694)

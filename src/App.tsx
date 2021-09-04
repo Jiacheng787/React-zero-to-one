@@ -1,7 +1,7 @@
+import Logo from "@assets/logo.png";
 import { Button } from 'antd';
 import * as React from 'react';
 import './App.scss';
-import Logo from "./assets/logo.png";
 
 type Props = {
   toWhat: string;
@@ -10,7 +10,8 @@ type State = {};
 
 class App extends React.Component<Props, State> {
   handleClick(): void {
-    console.log('2333');
+    console.log(process.env.NODE_ENV);
+    console.log(process.env.REACT_APP_BASE);
   }
   render(): JSX.Element {
     return (
@@ -19,7 +20,7 @@ class App extends React.Component<Props, State> {
         <div>{this.props.toWhat}</div>
         <img src={Logo} alt="" />
         <div>
-          <Button type="primary">测试按钮</Button>
+          <Button type="primary" onClick={this.handleClick}>测试按钮</Button>
         </div>
       </div>
     );
