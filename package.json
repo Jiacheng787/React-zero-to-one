@@ -1,13 +1,17 @@
 {
   "name": "react-zero-to-one",
   "version": "1.0.0",
+  "bin": {
+    "garfield-cli-service": "bin/garfield-cli-service.js"
+  },
   "description": "从零到一搭建 React 项目。",
   "main": "index.js",
   "scripts": {
     "dev": "webpack-dev-server --config build/webpack.dev.config.js",
     "build:dev": "webpack --config build/webpack.dev.config.js",
     "build:prod": "webpack --config build/webpack.prod.config.js",
-    "lint": "eslint src --fix"
+    "lint": "eslint src --fix",
+    "serve": "node ./bin/garfield-cli-service.js serve --NODE_ENV=development"
   },
   "keywords": [],
   "author": "",
@@ -43,6 +47,7 @@
     "html-webpack-plugin": "^5.3.2",
     "internal-ip": "^6.2.0",
     "mini-css-extract-plugin": "^2.2.0",
+    "minimist": "^1.2.5",
     "postcss-loader": "^6.1.1",
     "progress-bar-webpack-plugin": "^2.1.0",
     "sass": "^1.38.1",

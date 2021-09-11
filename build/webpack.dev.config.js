@@ -1,8 +1,5 @@
 const path = require('path');
 const webpack = require("webpack");
-const { promisify } = require('util');
-const figlet = promisify(require('figlet'));
-const chalk = require('chalk');
 const { merge } = require("webpack-merge");
 const baseConfig = require("./webpack.base.config");
 const DevServerBuiltPlugin = require("./DevServerBuiltPlugin");
@@ -14,6 +11,11 @@ module.exports = merge(baseConfig, {
   // 开发环境下开启 sourceMap
   devtool: "source-map",
   stats: 'none',
+  // 设置 logger 的日志级别
+  // 关掉 webapck-dev-server 启动打印的 info 日志
+  infrastructureLogging: {
+    level: 'error',
+  },
   devServer: {
     static: path.resolve(__dirname, '../dist'),
     // contentBase: path.join(__dirname, 'dist'),
@@ -23,10 +25,6 @@ module.exports = merge(baseConfig, {
     // publicPath: '/',
     host: 'localhost',
     port: '8066',
-    onListening: async () => {
-      console.log(await figlet("Garfield CLI"));
-      console.log(chalk.bgBlue.black(' INFO ') + "  Starting development server...");
-    }
   },
   plugins: [
     new webpack.HotModuleReplacementPlugin(),
