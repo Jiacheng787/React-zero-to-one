@@ -8,7 +8,15 @@
 
 
 
-### 1) 初始化项目
+### 1) 确认 Node.js 环境
+
+Node.js 环境是前端之源，如果没有 Node 就没有各种构建环境、本地开发服务器、依赖库管理等。相信每一位前端同学一定都安装了 Node.js ，只不过需要检查一下，安装的 Node 版本是否为 LTS 版本。
+
+简单来说，Node 的主版本分为**奇数版本**和**偶数版本**，每个版本发布之后会持续六个月的时间，六个月之后，奇数版本将变为 EOL (End-Of-Life version) 状态，不再支持，只有偶数版本会变成 Active LTS (long-term support) 状态并且长期支持，这意味着重大的 bug 将在后续的 30 个月内持续得到不断地修复。因此我们在生产环境使用 Node 的时候，应该尽量使用它的 LTS 版本。
+
+
+
+### 2) 初始化项目
 
 新建一个目录然后执行下面的命令初始化项目：
 
@@ -18,7 +26,7 @@ $ npm init -y
 
 
 
-### 2) 安装并配置 Webpack
+### 3) 安装并配置 Webpack
 
 前端不断发展，但很多特性浏览器不一定会支持，`ES6` 模块，`CommonJs` 模块、`Scss/less` 、`jsx` 等等，通过 Webpack 我们可以将所有文件进行打包、压缩混淆，最终转换为浏览器识别的代码。
 
@@ -116,7 +124,7 @@ $ npm run dev
 
 
 
-### 3) 安装 React
+### 4) 安装 React
 
 React 可以让我们专注于构建用户界面，而不需要再手动维护 dom 元素的更新，当然还可以用 Vue 。
 
@@ -169,7 +177,7 @@ You may need an appropriate loader to handle this file type, currently no loader
 
 
 
-### 4) 安装并配置 Babel
+### 5) 安装并配置 Babel
 
 `babel` 可以为我们把各种语法、新功能转换为浏览器所能识别的 `js` ，`.jsx` 文件就可以通过 `babel` 进行转换。
 
@@ -243,7 +251,7 @@ module.exports = {
 
 
 
-### 5) 将 babel helper 函数统一引入
+### 6) 将 babel helper 函数统一引入
 
 通过观察打包后的 `App.tsx` 文件（没有开启 `sourceMap`），可以发现 `babel` 在编译阶段注入了很多 helper 函数，这样就会存在一个问题，在正常的前端项目里面会涉及大量的组件，如果每个组件文件里面都单独注入 helper 函数，会导致打包后的文件体积变得很大：
 
@@ -313,7 +321,7 @@ $ npm i @babel/runtime-corejs3 -D
 
 
 
-### 6) Babel 编译提案阶段语法
+### 7) Babel 编译提案阶段语法
 
 前面提到 `@babel/preset-env` 只编译 ES 新特性，不包括提案阶段的语法。但实际上很多提案阶段的语法已经被广泛使用了，例如装饰器 `@` 、可选链 `?.` 、空值合并运算符 `??` ，为了让 Babel 编译这些语法，可以使用额外的插件：
 
@@ -373,7 +381,7 @@ module.exports = {
 
 
 
-### 7) @babel/preset-module
+### 8) @babel/preset-module
 
 这边的内容参考了卡老师的文章：
 
@@ -399,7 +407,7 @@ https://github.com/babel/preset-modules
 
 
 
-### 8) 引入 TypeScript
+### 9) 引入 TypeScript
 
 项目引入 `ts` 的话有两种方式：
 
@@ -532,7 +540,7 @@ ReactDOM.render(
 
 
 
-### 9) 引入 CSS
+### 10) 引入 CSS
 
 Webpack 默认只编译 JS 文件，如果还需要编译 CSS 文件，就需要装一下 CSS 的 `loader` ：
 
@@ -561,7 +569,7 @@ module: {
 
 
 
-### 10) 引入 Sass
+### 11) 引入 Sass
 
 `Sass` 是 `css` 的预编译器，可以让我们写样式更顺手。
 
@@ -634,7 +642,7 @@ export default App;
 
 
 
-### 11) 样式开启 sourceMap
+### 12) 样式开启 sourceMap
 
 通过上面的配置，我们看到样式只是定位到了 HTML 文件的 `style` 标签里面：
 
@@ -673,7 +681,7 @@ rules: [
 
 
 
-### 12) 使用 postcss autoprefixer 添加 CSS 前缀
+### 13) 使用 postcss autoprefixer 添加 CSS 前缀
 
 这里我们用到 `PostCSS` 这个 `loader`，它是一个 CSS **预处理工具**，可以为 CSS3 的属性**添加前缀**，样式格式校验（`stylelint`），提前使用 `CSS` 新特性，实现 `CSS` 模块化，防止 `CSS` 样式冲突。
 
@@ -765,7 +773,7 @@ module.exports = {
 
 
 
-### 13) Webpack 处理图片和字体
+### 14) Webpack 处理图片和字体
 
 在 Webpack 4 里面通常会用到 `url-loader` 和 `file-loader` ，在 Webpack 5 里面新增 Asset Modules ，不用再装额外的 loader ：
 
@@ -835,7 +843,7 @@ declare module '*.tiff'
 
 
 
-### 14) 模块路径别名
+### 15) 模块路径别名
 
 刚才我们引入图片使用了相对路径，但是滥用相对路径会导致维护上的问题，例如下面这个路径，我们很难定位到这个模块是从哪里引入的：
 
@@ -859,7 +867,7 @@ resolve: {
 
 
 
-### 15) Webpack 添加编译进度条
+### 16) Webpack 添加编译进度条
 
 到这边大部分 Webpack 的配置都已经配好了。如果在项目中引入了一个重量级的库，例如 `lodash` 、`moment` ，会发现打包比较慢而且没有进度信息。我们可以添加一个编译进度条：
 
@@ -884,7 +892,7 @@ module.exports = {
 
 
 
-### 16) 配置 ESLint
+### 17) 配置 ESLint
 
 可以配置 `eslint` 来进行语法上静态的检查，也可以对 `ts` 进行检查：
 
@@ -955,7 +963,7 @@ dist
 
 
 
-### 17) 配置 Prettier
+### 18) 配置 Prettier
 
 `prettier` 主要做代码风格上的检查，例如字符串双引号还是单引号、缩进、换行问题、是否加尾分号，类似这样的
 
@@ -1502,6 +1510,19 @@ module.exports = {
 
 因此建议在 `webpack.dev.config.js` 和 `webpack.prod.config.js` 中各放一份代码。
 
+到这边环境变量已经配置完成，我们修改一下 npm scripts ：
+
+```json
+"scripts": {
+  "dev": "webpack-dev-server --config build/webpack.dev.config.js",
+  "build:dev": "webpack --config build/webpack.dev.config.js",
+  "build:prod": "webpack --config build/webpack.prod.config.js",
+  "lint": "eslint src --fix"
+},
+```
+
+我们可以使用 `npm run build:dev` 打开发环境的包，使用 `npm run build:prod` 打生产环境的包。
+
 
 
 ### 6) 配置路由
@@ -1522,6 +1543,21 @@ module.exports = {
 
 
 
+### 9) 提升打包速度
+
+在 Webpack 打包的时候，通常会采用一些分包策略，例如 `SplitChunksPlugin` ，异步懒加载等。但是需要注意，这些分包策略对于提升打包速度并没有帮助，仅仅只是优化首屏时间。
+
+对于一些不经常更新的第三方库，例如 `react` 、`lodash` 、`vue` ，即使用了 `SplitChunksPlugin` ，webpack 每次打包实际还是要去处理这些第三方库，只是打包之后，能把第三方库和我们自己的代码分开。
+
+> 本人维护过一个老项目，有一些库，例如 `jQuery` ，没有使用 npm 下载，而是直接下载了源码放到项目里面，然后配置 webpack 多入口打包，然后挂载到 `window` 对象上，在 `webpack.DefinePlugin` 中定义全局变量，不得不说这样做太愚蠢了，这样不管用没用到都打包进去，根本没法 Tree Shaking ，还不如 npm 下载了
+
+显然每次构建时，对不经常更新而体积很大的第三方库都重复打包就显得没有必要。对这些库的处理通常有两种方案：
+
+- 一种是配置 `externals` 选项，让 webpack 不打包某部分，然后通过外链脚本引入，或者通过 CDN 引入；
+- 另一种是通过 DllPlugin ，但是在新版本的 Webpack 中测试，提升的速度不是很明显，因此对于 Webpack 5 来说使用的意义不大；
+
+
+
 ## 参考
 
 [2021年从零开发前端项目指南](https://juejin.cn/post/6999807899149008910)
@@ -1529,3 +1565,6 @@ module.exports = {
 [手把手带你入门 Webpack4](https://juejin.cn/post/6844903912588181511)
 
 [【开源】一个 React + TS 项目模板](https://juejin.cn/post/6844904102355271694)
+
+[Webpack 打包太慢? 试试 Dllplugin](https://juejin.cn/post/6844903951410659341)
+

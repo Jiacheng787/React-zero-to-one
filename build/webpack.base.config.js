@@ -85,9 +85,9 @@ module.exports = {
     }
   },
   plugins: [
-    new ProgressBarPlugin({
-      format: `:msg [:bar] ${chalk.green.bold(':percent')} (:elapsed s)`
-    }),
+    // new ProgressBarPlugin({
+    //   format: `:msg [:bar] ${chalk.green.bold(':percent')} (:elapsed s)`
+    // }),
     new HtmlWebpackPlugin({
       template: path.join(__dirname, '../public/index.html'),
       title: "react-zero-to-one",
