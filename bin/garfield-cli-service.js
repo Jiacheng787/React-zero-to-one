@@ -35,6 +35,7 @@ const server = new WebpackDevServer({
 
 
 function webpackConfigStrategy(env) {
+  // TODO: 增加 staging 环境支持
   let strategy = {
     development: () => require(path.resolve(__dirname, "../build/webpack.dev.config.js")),
     production: () => require(path.resolve(__dirname, "../build/webpack.prod.config.js")),
