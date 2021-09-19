@@ -181,11 +181,23 @@ You may need an appropriate loader to handle this file type, currently no loader
 
 `babel` 可以为我们把各种语法、新功能转换为浏览器所能识别的 `js` ，`.jsx` 文件就可以通过 `babel` 进行转换。
 
+> `.jsx` 实际上和 `.vue` 类似，在开发阶段通过 IDE 进行语法支持，打包编译阶段通过专门的 loader 去编译
+
 这里我们先安装一下 `babel` 以及在 webpack 中使用的 `babel-loader` ：
 
 ```bash
 $ npm i @babel/core babel-loader -D
 ```
+
+> Babel 采用**微内核**架构，核心功能非常小，大部分功能都是通过插件扩展进行实现的。`@babel/core` 就是微内核架构中的内核，主要处理这些任务：
+>
+> - 加载并处理配置；
+> - 加载插件；
+> - 将代码通过 parse 转换成 AST ；
+> - 调用 Traverser 遍历整个 AST ，并使用**访问者模式**对 AST 进行转换；
+> - 生成代码，包括 SourceMap 转换和源代码生成；
+>
+> Babel  的运行分为三个阶段：解析、转换、生成。自 Babel 6.0 起，就不再对代码进行 `transform` ，只负责 `parse` 和 `generate` 的过程，代码的 `transform` 过程全部交给一个个 `plugin` 去做。因此，在没有配置任何 `plugin` 的情况下，经过 `babel` 输出的代码是没有改变的。
 
 然后在 webpack 中引入 `babel-loader` ，用来对 `js` 进行转换，更改 webpack.config.js 文件，添加一个配置：
 
@@ -213,7 +225,7 @@ $ npm i @babel/preset-react -D
 
 ```js
 module.exports  = {
-  "presets": [
+  presets: [
     "@babel/preset-react"
   ]
 }
@@ -223,9 +235,13 @@ module.exports  = {
 
 再次运行项目就可以正常使用 JSX 了。
 
-然后我们还可以安装一些其他 `babel` 插件以便使用最新的 `ES` 语法，比如箭头函数、`async await`、问号表达式等等， 需要什么就可以配置什么。当浏览器不支持这些特性时，`babel` 可以帮我们实现 `polyfill` 进行降级。
+实际上 Babel 最初是设计用来将 ECMAScript 2015+ 的代码转换成后向兼容的代码，主要工作就是**语法转换**和 **polyfill** 。
 
-`@babel/preset-env` 可以用于转换所有 ES 的新语法（不包括还在提案阶段的特性），`core-js` 用于实现 `ployfill`，安装这俩之后各种 ES 最新的特性就都可以放心使用了，对于实验性语法我们可以单独配置 `babel` 的插件。
+有的环境下可能需要转换几十种不同语法的代码，则需要配置几十个`plugin`，这显然会非常繁琐。所以，为了解决这种问题，`babel`提供了预设插件机制`preset`，`preset`中可以**预设置一组插件来便捷的使用这些插件所提供的功能**。目前，`babel`官方推荐使用`@babel/preset-env`预设插件。
+
+`@babel/preset-env`主要的作用是用来转换那些已经被**正式纳入`TC39`中的语法**。所以它无法对那些还在提案中的语法进行处理，对于处在`stage`中的语法，需要安装对应的`plugin`进行处理。
+
+除了语法转换，`@babel/preset-env`另一个重要的功能是**对`api`的处理，也就是在代码中引入`polyfill`**。例如浏览器环境不支持 Promise ，就可以通过引入 polyfill 来实现 Promise 。`@babel/preset-env`主要是依赖`core-js`来处理`api`的兼容性，所以需要事先安装`core-js`。当设置了`useBuiltIns`选项（不为`false`）时，就会使用`core-js`来对`api`进行处理。
 
 ```bash
 $ npm i @babel/preset-env core-js -D
@@ -248,6 +264,8 @@ module.exports = {
   "plugins": []
 }
 ```
+
+[前端工程化（7）：你所需要知道的最新的babel兼容性实现方案](https://juejin.cn/post/6976501655302832159)
 
 
 
@@ -540,7 +558,27 @@ ReactDOM.render(
 
 
 
-### 10) 引入 CSS
+### 10) 开启 sourceMap
+
+源码打包编译之后，代码的可读性下降，不利于代码调试，打断点不能定位到原始位置。为便于调试，webpack 提供了 sourceMap 功能，可以将编译后的代码映射回源代码。开启 `sourceMap` 很简单：
+
+```js
+devtool: "source-map"
+```
+
+开启 `sourceMap` 会拖慢打包速度，因此建议只在**开发环境**启用。此外，webpack 提供了多种类型可以使用，其中 `source-map` 最完整，可以精确定位到源码，但是速度最慢，生成的 `.map` 文件体积最大，其他还包括  `eval` 、`inline` 、`cheap` 等，在 Vue-cli 中的配置如下：
+
+```js
+devtool: "eval-cheap-module-source-map"
+```
+
+有关 `sourceMap` 的介绍可以参考：
+
+[何为SourceMap？讲讲SourceMap食用姿势](https://juejin.cn/post/7008039749747212319)
+
+
+
+### 11) 引入 CSS
 
 Webpack 默认只编译 JS 文件，如果还需要编译 CSS 文件，就需要装一下 CSS 的 `loader` ：
 
@@ -569,7 +607,7 @@ module: {
 
 
 
-### 11) 引入 Sass
+### 12) 引入 Sass
 
 `Sass` 是 `css` 的预编译器，可以让我们写样式更顺手。
 
@@ -642,7 +680,7 @@ export default App;
 
 
 
-### 12) 样式开启 sourceMap
+### 13) 样式开启 sourceMap
 
 通过上面的配置，我们看到样式只是定位到了 HTML 文件的 `style` 标签里面：
 
@@ -681,7 +719,7 @@ rules: [
 
 
 
-### 13) 使用 postcss autoprefixer 添加 CSS 前缀
+### 14) 使用 postcss autoprefixer 添加 CSS 前缀
 
 这里我们用到 `PostCSS` 这个 `loader`，它是一个 CSS **预处理工具**，可以为 CSS3 的属性**添加前缀**，样式格式校验（`stylelint`），提前使用 `CSS` 新特性，实现 `CSS` 模块化，防止 `CSS` 样式冲突。
 
@@ -773,9 +811,44 @@ module.exports = {
 
 
 
-### 14) Webpack 处理图片和字体
+### 15) Webpack 处理图片和字体
 
-在 Webpack 4 里面通常会用到 `url-loader` 和 `file-loader` ，在 Webpack 5 里面新增 Asset Modules ，不用再装额外的 loader ：
+在 Webpack 4 里面通常会用到 `url-loader` 和 `file-loader` ，对于体积较小的图片，可以使用 `url-loader` 转为 Base64 ，然后通过 DataURL 引入（在雅虎军规中被称为 Inline Image），避免额外的网络请求。但是转成 Base64 存在一个问题，文件的体积会比原来大三分之一，对于体积较大的图片就不合适了，这个时候就可以使用 `file-loader` ，直接将图片拷贝到 dist 目录下，然后修改打包后文件引用路径，使之指向正确的文件。实际上，`url-loader` 已经封装了 `file-loader` ，通过配置 `limit` 参数，小于 `limit` 字节的文件会被转为 DataURL ，大于 `limit` 的会使用 `file-loader` 进行 copy 。
+
+```js
+module: {
+  rules: [
+    {
+      test: /\.(png|svg|jpg|jpeg|gif)$/,
+      include: [path.resolve(__dirname, 'src/')],
+      use: [
+        {
+          loader: 'url-loader', // 根据图片大小，把图片转换成 base64
+          options: {
+            limit: 10000
+          }, 
+        }
+      ]
+  	}
+  ]
+}
+```
+
+对于字体文件直接使用 `file-loader` ：
+
+```js
+module: {
+  rules: [
+    {
+      test: /\.(woff|woff2|eot|ttf|otf)$/,
+      include: [path.resolve(__dirname, 'src/')],
+      use: [ 'file-loader' ]
+  	}
+  ]
+}
+```
+
+在 Webpack 5 里面新增 Asset Modules ，不用再装额外的 loader ：
 
 ```js
 entry: './src/index.tsx',
@@ -843,7 +916,7 @@ declare module '*.tiff'
 
 
 
-### 15) 模块路径别名
+### 16) 模块路径别名
 
 刚才我们引入图片使用了相对路径，但是滥用相对路径会导致维护上的问题，例如下面这个路径，我们很难定位到这个模块是从哪里引入的：
 
@@ -867,7 +940,7 @@ resolve: {
 
 
 
-### 16) Webpack 添加编译进度条
+### 17) Webpack 添加编译进度条
 
 到这边大部分 Webpack 的配置都已经配好了。如果在项目中引入了一个重量级的库，例如 `lodash` 、`moment` ，会发现打包比较慢而且没有进度信息。我们可以添加一个编译进度条：
 
@@ -892,7 +965,7 @@ module.exports = {
 
 
 
-### 17) 配置 ESLint
+### 18) 配置 ESLint
 
 可以配置 `eslint` 来进行语法上静态的检查，也可以对 `ts` 进行检查：
 
@@ -963,7 +1036,7 @@ dist
 
 
 
-### 18) 配置 Prettier
+### 19) 配置 Prettier
 
 `prettier` 主要做代码风格上的检查，例如字符串双引号还是单引号、缩进、换行问题、是否加尾分号，类似这样的
 
@@ -1392,7 +1465,160 @@ module.exports = merge(baseConfig, {
 
 
 
-### 5) 配置环境变量
+### 5) 生产环境下压缩 JS 和 CSS
+
+生产环境下为了获得最佳的 chunk size ，会对源码进行压缩处理。
+
+**压缩 JS**
+
+在 webpack 4.x 版本使用 `uglifyjs-webpack-plugin` 或者 `parallel-uglify-plugin` 多进程压缩 JS ，但是 webpack 5 的文档已经找不到这两个 plugin 了，取而代之的是 `terser-webpack-plugin` ，默认开启了多进程和缓存。
+
+webpack v5 开箱即带有最新版本的 `terser-webpack-plugin`。如果你使用的是 webpack v5 或更高版本，同时希望自定义配置，那么仍需要安装 `terser-webpack-plugin` ：
+
+```bash
+$ npm i terser-webpack-plugin -D
+```
+
+基本使用如下：
+
+```js
+const TerserPlugin = require("terser-webpack-plugin");
+
+module.exports = {
+  optimization: {
+    minimize: true,
+    minimizer: [new TerserPlugin()],
+  },
+};
+```
+
+其中 `TerserPlugin` 可以传递如下配置：
+
+```typescript
+{
+  // 默认值 /\.m?js(\?.*)?$/i
+  test: String | RegExp | Array<String|RegExp>,
+  // 默认值 undefined
+  include: String | RegExp | Array<String|RegExp>,
+  // 默认值 undefined
+  exclude: String | RegExp | Array<String|RegExp>, 
+  // 默认值 true ，默认并发数 os.cpus().length - 1
+  parallel: Boolean | Number,
+  // 默认值 TerserPlugin.terserMinify ，可以指定其他压缩函数
+  minify: Function,
+  // 压缩函数的配置项
+  terserOptions: Object,
+  // 默认值 true
+  extractComments: Boolean | String | RegExp | Function<(node, comment) -> Boolean|Object> | Object
+}
+```
+
+在上面的配置中，`test` 、`include` 、`exclude` 、`parallel` 基本上不用设置，直接用默认值即可，`minify` 可以自定义压缩函数，`TerserPlugin` 默认使用 `terser` 进行压缩，还可以使用 `swc` 、`uglifyJS` 、`esbuild` 来压缩。
+
+`terserOptions` 是压缩函数的配置项，当选用 `terser` 时，`terserOptions` 对应的就是 `terser` 的配置项。`terser` 的配置与 `uglifyJs` 基本一致：
+
+```js
+{
+    parse: {
+        // parse options
+    },
+    compress: {
+        // compress options
+    },
+    mangle: {
+        // mangle options
+
+        properties: {
+            // mangle property options
+        }
+    },
+    format: {
+        // format options (can also use `output` for backwards compatibility)
+    },
+    sourceMap: {
+        // source map options
+    },
+    ecma: 5, // specify one of: 5, 2015, 2016, etc.
+    enclose: false, // or specify true, or "args:values"
+    keep_classnames: false,
+    keep_fnames: false,
+    ie8: false,
+    module: false,
+    nameCache: null, // or specify a name cache object
+    safari10: false,
+    toplevel: false
+}
+```
+
+> https://github.com/terser/terser
+
+在 `webpack.prod.config.js` 中配置如下：
+
+```js
+const { merge } = require("webpack-merge");
+const baseConfig = require("./webpack.base.config");
+const TerserPlugin = require("terser-webpack-plugin");
+
+module.exports = merge(baseConfig, {
+  mode: "production",
+  stats: "errors-only",
+  optimization: {
+    minimize: true,
+    minimizer: [
+      new TerserPlugin({
+        terserOptions: {
+          compress: {
+            drop_console: true,
+            drop_debugger: true,
+          },
+        }
+      }),
+    ]
+  }
+})
+```
+
+> 这边配置了在生产环境下移除 `console.*` 和 `debugger` ，其他配置项使用默认值即可，如要修改建议仔细阅读文档，否则可能引入 bug
+
+
+
+**压缩 CSS**
+
+在 webpack 4 及之前的版本使用 `optimize-css-assets-webpack-plugin` ，在 webpack 5 中可以使用 `css-minimizer-webpack-plugin` ：
+
+```bash
+$ npm i css-minimizer-webpack-plugin -D
+```
+
+在 `webpack.prod.config.js` 中配置如下：
+
+```js
+const { merge } = require("webpack-merge");
+const baseConfig = require("./webpack.base.config");
+const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
+
+module.exports = merge(baseConfig, {
+  mode: "production",
+  stats: "errors-only",
+  optimization: {
+    minimizer: [
+      new CssMinimizerPlugin(),
+    ]
+  }
+})
+```
+
+> `CssMinimizerPlugin` 默认只在生产环境开启 CSS 优化，如果在开发环境使用需要进行配置
+
+
+
+### 6) 配置环境变量
+
+Webpack 有一个 `mode` 选项，当我们设为 `development` ，会将 `DefinePlugin` 中 `process.env.NODE_ENV` 的值设为 `development` ，如果设为 `production` ，则会将 `DefinePlugin` 中 `process.env.NODE_ENV` 的值设为 `production` 。这样在项目中就可以使用 `process.env.NODE_ENV` 获取到环境变量。
+
+> 前端项目的环境变量和 Node.js 的环境变量实际上是不一样的，我们在项目中使用的 `process.env.NODE_ENV` 会在打包编译时直接替换为对应的值，下面会详细说明
+
+但通常我们不满足于使用 `process.env.NODE_ENV` ，一般会把所有跟环境相关的配置都设置为环境变量，例如后端环境地址，这样在不同模式下打包就可以启用对应的后端环境，非常方便。
 
 通常我们会在项目根目录下创建几个文件，用于配置环境变量：
 
@@ -1525,25 +1751,25 @@ module.exports = {
 
 
 
-### 6) 配置路由
+### 7) 配置路由
 
 
 
 
 
-### 7) 配置全局状态管理
+### 8) 配置全局状态管理
 
 
 
 
 
-### 8) 配置网络请求库
+### 9) 配置网络请求库
 
 
 
 
 
-### 9) 提升打包速度
+### 10) 提升打包速度
 
 在 Webpack 打包的时候，通常会采用一些分包策略，例如 `SplitChunksPlugin` ，异步懒加载等。但是需要注意，这些分包策略对于提升打包速度并没有帮助，仅仅只是优化首屏时间。
 
@@ -1558,6 +1784,18 @@ module.exports = {
 
 
 
+### 11) Module Federation Speed Up
+
+通常我们的代码可以简单区分为业务代码和第三方库，如果不作处理，每次构建时都需要把所有的代码都重新构建一次，但是大部分情况下，很多第三方库的代码并不会发生变化（除非是版本升级），因此我们可以把复用性较高的第三方模块进行单独打包并提交到 git 仓库，这样每次构建只需要打包业务代码。
+
+在 Webpack 5 之前，通常会使用 DllPlugin 进行依赖预构建，在 Webpack 5 提供了一个新特性 Module Federation ，官网对 Module Federation 介绍是：
+
+> 多个独立的构建可以形成一个应用程序。这些独立的构建不会相互依赖，因此可以单独开发和部署它们。这通常被称为微前端，但并不仅限于此。
+
+简单来说，MF 实际上就是可以把多个无单独依赖的、单独部署的应用合为一个。或者说不止是应用，MF 支持的粒度更细。它可以把多个模块、多个 npm 包合为一个。
+
+
+
 ## 参考
 
 [2021年从零开发前端项目指南](https://juejin.cn/post/6999807899149008910)
@@ -1567,4 +1805,6 @@ module.exports = {
 [【开源】一个 React + TS 项目模板](https://juejin.cn/post/6844904102355271694)
 
 [Webpack 打包太慢? 试试 Dllplugin](https://juejin.cn/post/6844903951410659341)
+
+[学习 Webpack5 之路（优化篇）- 近 7k 字](https://juejin.cn/post/6996816316875161637)
 

@@ -6,7 +6,65 @@
 
 
 
-## 1. 关掉 Webpack-dev-server 启动时打印的日志
+## 1. Vue-cli 是如何启动的
+
+用过 Vue 的小伙伴一定都知道，在启动 Vue 项目时 `npm run serve` 实际上是执行了：
+
+```bash
+$ npx vue-cli-service serve
+```
+
+在 `node_modules` 里面研究了下 `@vue` 模块：
+
+```
+@vue
+└── cli-service
+    ├── bin
+    |   └── vue-cli-service.js
+    └── lib
+        └── commands
+            ├── help.js
+            ├── inspect.js
+            └── serve.js
+```
+
+那么显然 `bin/vue-cli-service.js` 就是可执行文件了，看了下 `package.json` 里面配置的 `bin` 的定义：
+
+```json
+"bin": {
+  "vue-cli-service": "bin/vue-cli-service.js"
+},
+```
+
+我们知道，通过`npm`启动的脚本，会默认把`node_modules/.bin`加到`PATH`环境变量中。如果一个包配置了 `bin`后，当它被安装的时候，在项目的 `node_modules/.bin`下就会有相应的指令，方便执行。在项目的 `node_modules/.bin` 里面可以找到这个软链接：
+
+> node_modules/.bin/vue-cli-service
+
+同时在 `vue-cli-service.js` 文件的顶部可以看到一个声明：
+
+```js
+#!/usr/bin/env node
+```
+
+这行声明代表用 `node` 去执行这个文件，这样当我们执行 `vue-cli-service` 的时候，相当于执行了下面的命令：
+
+```bash
+$ node ./bin/vue-cli-service.js
+```
+
+
+
+
+
+
+
+## 2. 换个方式使用 Webpack
+
+
+
+
+
+## 3. 关掉 Webpack-dev-server 启动时打印的日志
 
 相信自己配置过 `webpack-dev-server` 的小伙伴都知道，`webpack-dev-server` 启动的时候会打印日志信息：
 
