@@ -255,8 +255,8 @@ module.exports = {
     [
       "@babel/preset-env",
       {
-        "useBuiltIns": "usage",
-        "corejs": 3
+        useBuiltIns: "usage",
+        corejs: 3
       }
     ],
     "@babel/preset-react"
@@ -296,8 +296,8 @@ module.exports = {
     [
       "@babel/preset-env",
       {
-        "useBuiltIns": "usage",
-        "corejs": 3
+        useBuiltIns: "usage",
+        corejs: 3
       }
     ],
     "@babel/preset-react"
@@ -306,8 +306,8 @@ module.exports = {
     [
       "import",
       {
-        "libraryName": "antd",
-        "style": 'css'
+        libraryName: "antd",
+        style: 'css'
       }
     ],
     [
@@ -341,34 +341,94 @@ $ npm i @babel/runtime-corejs3 -D
 
 ### 7) Babel 编译提案阶段语法
 
-前面提到 `@babel/preset-env` 只编译 ES 新特性，不包括提案阶段的语法。但实际上很多提案阶段的语法已经被广泛使用了，例如装饰器 `@` 、可选链 `?.` 、空值合并运算符 `??` ，为了让 Babel 编译这些语法，可以使用额外的插件：
+前面提到 `@babel/preset-env` 只编译被正式纳入 TC39 的语法特性，不能编译提案阶段的语法。但实际上很多提案阶段的语法已经被广泛使用了，例如装饰器 `@` 、可选链 `?.` 、空值合并运算符 `??` ，为了让 Babel 编译这些语法，可以使用额外的插件：
 
-```bash
-$ npm i @babel/plugin-proposal-decorators @babel/plugin-syntax-dynamic-import @babel/plugin-transform-async-to-generator @babel/plugin-transform-regenerator @babel/plugin-proposal-object-rest-spread @babel/plugin-proposal-class-properties -D
+> https://babeljs.io/docs/en/plugins-list
+
+在 TypeScript 项目中通常会安装如下插件，不过里面大部分已经纳入了 TC39 ，只要安装最新版本的 `@babel/preset-env` 就可以了，不用单独安装：
+
+```js
+// 装饰器语法 `@`，还在提案阶段
+@babel/plugin-proposal-decorators
+// 可选链操作符 `?.`，ES2020 语法
+@babel/plugin-proposal-optional-chaining
+// 空值合并运算符 `??`，ES2020 语法
+@babel/plugin-proposal-nullish-coalescing-operator
+// 动态引入 `import()`，ES2020 语法
+@babel/plugin-syntax-dynamic-import
+// 将 ES2017 async 函数编译为 ES2015 generator
+@babel/plugin-transform-async-to-generator
+// ES2015 generator 降级处理
+@babel/plugin-transform-regenerator
+// 对象展开，ES2018 语法
+@babel/plugin-proposal-object-rest-spread
+// 类属性，ES2022 语法
+@babel/plugin-proposal-class-properties
 ```
 
-修改 `babel.config.js` 如下：
+因此这边实际上只需要装 `decorator` 插件就可以：
+
+```bash
+$ npm i @babel/plugin-proposal-decorators -D
+```
+
+需要注意几个问题：
+
+动态引入 `import()` 插件不包含 `Promise` 的实现，如果在不支持 `Promise` 的环境使用，则需要引入 `Promise` 和 `Iterator` 的 polyfill ；
+
+ES2015 的展开运算符实际上只适用于展开到数组的情形，并且内部是基于 `for...of` 迭代，因此被展开的也必须是可迭代对象（实现了 `Iterator` 接口的对象，例如数组、字符串、`Set` 、`Map`）。直到 ES2018 才将展开运算符扩充到对象使用，允许将普通对象或者可迭代对象展开到一个普通对象内，但是注意普通对象仍然不能展开到数组（因为普通对象没有实现 `Iterator` 接口）。
+
+类属性语法，Babel 官网有一个例子：
+
+```js
+class Bork {
+  //Property initializer syntax
+  instanceProperty = "bork";
+  boundFunction = () => {
+    return this.instanceProperty;
+  };
+
+  //Static class properties
+  static staticProperty = "babelIsCool";
+  static staticFunction = function() {
+    return Bork.staticProperty;
+  };
+}
+```
+
+无论是实例属性/方法，还是静态属性/方法都会被转换。需要注意的是，这边的实例属性/方法，会作为对象的自有属性，不会挂载到原型上：
+
+```js
+let myBork = new Bork();
+
+//Property initializers are not on the prototype.
+console.log(myBork.__proto__.boundFunction); // > undefined
+```
+
+> 相当于在类的 `constructor` 内部初始化，只不过写法更简洁，配合 TS 使用更佳
+
+然后我们修改 `babel.config.js` 如下：
 
 ```js
 module.exports = {
-  "presets": [
+  presets: [
     "@babel/preset-typescript",
     [
       "@babel/preset-env",
       {
-        "useBuiltIns": "usage",
-        "corejs": 3
+        useBuiltIns: "usage",
+        corejs: 3
       }
     ],
     "@babel/preset-react"
   ],
-  "plugins": [
+  plugins: [
     // antd 按需引入
     [
       "import",
       {
-        "libraryName": "antd",
-        "style": 'css'
+        libraryName: "antd",
+        style: 'css'
       }
     ],
     // 将 babel helper 函数统一引入
@@ -387,12 +447,7 @@ module.exports = {
       {
         legacy: true,
       },
-    ],
-    '@babel/plugin-syntax-dynamic-import',
-    '@babel/plugin-transform-async-to-generator',
-    '@babel/plugin-transform-regenerator',
-    '@babel/plugin-proposal-object-rest-spread',
-    '@babel/plugin-proposal-class-properties',
+    ]
   ]
 }
 ```
@@ -484,7 +539,8 @@ $ npm i @babel/preset-typescript -D
 
 ```js
 module.exports = {
-  "presets": [
+  presets: [
+    // 加载 @babel/preset-typescript 插件
     "@babel/preset-typescript",
     [
       "@babel/preset-env",
@@ -495,7 +551,7 @@ module.exports = {
     ],
     "@babel/preset-react"
   ],
-  "plugins": []
+  plugins: []
 }
 ```
 
@@ -521,6 +577,28 @@ resolve: {
   extensions: ['.tsx', '.ts', '.jsx', '.js', '.json', '.d.ts'],
 }
 ```
+
+这样的话，webpack 在遇到 TS 文件时，会调用 `babel-loader` 处理这个文件，由 Babel 将这个文件转换成标准 JavaScript 文件，然后将处理结果交还给 webpack ，webpack 继续后面的流程。
+
+那么 Babel 是怎么将 TypeScript 文件转换成标准 JavaScript 文件的呢？答案是**直接删除掉类型注解**。先看一下 Babel 的工作流程，Babel 主要有三个处理步骤：解析、转换和生成。
+
+1. 解析：将源代码处理为 AST ，对应 `@babel/parser` ；
+2. 转换：对 AST 进行遍历，在此过程中对节点进行添加、更新、移除等操作，对应 `@babel/traverse` ；
+3. 生成：把转换后的 AST 转换成字符串形式的代码，同时创建源码映射，对应 `@babel/generator` ；
+
+那么在加入 `@babel/preset-typescript` 之后，Babel 会在第二步转换过程中，调用 `@babel/plugin-transform-typescript` 插件，遍历到类型注解节点，直接移除。
+
+使用 Babel ，不仅能处理 TypeScript ，语法转换、polyfill 等功能也能一并享受。并且由于 Babel 只是移除类型注解节点，所以速度相当快。但是这边有一个问题，既然 Babel 把类型注解移除了，我们写 TypeScript 还有什么意义呢？我认为主要有以下几点考虑：
+
+1. 性能方面，移除类型注解速度最快。收集类型并验证类型是否正确，是一个相当耗时的操作。
+2. Babel 本身的限制。进行类型验证之前，需要解析项目中所有的文件，收集类型信息。而 Babel 只是一个**单文件处理工具**。Webpack 在调用 loader 处理文件时，也是一个文件一个文件调用的。所以 Babel 想验证类型也做不到。并且 Babel 的三个工作步骤中，并没有输出错误的功能。
+3. 没有必要。类型验证错误提示可以交给编辑器。
+
+当然，由于 Babel 的单文件特性，`@babel/preset-typescript` 对于需要收集完整类型系统信息才能正确运行的 TypeScript 语言特性，支持不是很好，如 const enums 等。
+
+[TypeScript是如何工作的](https://juejin.cn/post/7007251289721536543)
+
+
 
 接下来我们在 `src` 目录下创建 `App.tsx` ，内容如下：
 
@@ -940,7 +1018,7 @@ resolve: {
 
 
 
-### 17) Webpack 添加编译进度条
+### TODO: Webpack 添加编译进度条
 
 到这边大部分 Webpack 的配置都已经配好了。如果在项目中引入了一个重量级的库，例如 `lodash` 、`moment` ，会发现打包比较慢而且没有进度信息。我们可以添加一个编译进度条：
 
@@ -1222,11 +1300,13 @@ export default App;
 
 
 
-### 2) 将 antd 样式抽取成单独文件
+### 2) 生产环境下将 antd 样式抽取成单独文件
 
 前面我们使用了 `style-loader` 将样式都打包进 `bundle.js` ，然后注入到了 `style` 标签里面。由于第三方组件库通常样式文件很大（即使用了按需引入），如果都打包进 `bundle.js` 显然不是合理的做法，所以我们需要将组件库的样式打包成单独的 CSS 文件。
 
 Webpack4 开始使用 `mini-css-extract-plugin` 插件，而在 1-3 版本使用 `extract-text-webpack-plugin`。
+
+> 建议只在生产环境使用 `mini-css-extract-plugin` 抽取样式，开发环境开启 HMR 之后，为了让样式源文件也能热更新，需要让样式随 JS Bundle 一起输出，然后用 `style-loader` 注入到 `<style>` 标签内
 
 安装插件：
 
@@ -1326,6 +1406,28 @@ module.exports = {
 ### 4) webpack 配置合并和提取公共配置
 
 在开发环境（development）和生产环境（production）配置文件有很多不同，但也有部分相同，为了不每次更换环境的时候都修改配置，我们就需要将配置文件做合并，和提取公共配置。
+
+开发环境和生产环境的区别如下：
+
+**开发环境**
+
+- **NODE_ENV 为 development**
+- 启用模块热更新（hot module replacement）
+- 额外的 `webpack-dev-server` 配置项，API Proxy 配置项
+- 输出 Sourcemap
+
+**生产环境**
+
+- **NODE_ENV 为 production**
+- 将 React、jQuery 等常用库设置为 `external`，直接采用 CDN 线上的版本
+- 样式源文件（如 css、less、scss 等）需要通过 `MiniCssExtractPlugin` 独立抽取成 css 文件
+- 启用 post-css
+- 启用 optimize-minimize（如 uglify 等）
+- 中大型的商业网站生产环境下，是绝对不能有 `console.log()` 的
+
+> 代码移除 `console.log()` 可以在很多环节进行，例如在 Babel 编译阶段使用 `babel-plugin-transform-remove-console` ，或者设置 `uglifyJs` 的 `drop_console: true` ，在代码压缩阶段移除。我们知道 `console.log()` 是有副作用的，在 Babel 编译阶段移除有利于提升 webpack  Tree-Shaking 的效果，而 `uglifyJs` 是对打包之后的 `chunk` 进行处理，但是 `uglifyJs` 在 `webpack.config.js` 中配置比较灵活，可以区分开发环境和生产环境。
+
+> 开发环境下启用了 HMR ，为了让样式源文件的修改同样也能被热替换，不能使用 `MiniCssExtractPlugin` ，而转为随 JS Bundle 一起输出。
 
 我们使用 `webpack-merge` 工具，将两份配置文件合并：
 
@@ -1471,7 +1573,19 @@ module.exports = merge(baseConfig, {
 
 **压缩 JS**
 
+压缩 JS 的常用方法如下：
+
+1. 使用 `terser` 或者 `uglify` 压缩混淆化 JS ；
+2. 使用 `gzip` 或者 `brotil` 压缩，在网关处开启；
+3. 使用 `webpack-bundle-analyzer` 分析打包体积，替换占用较大体积的库，例如 `moment` 改为 `dayjs` ，使用支持 Tree-Shaking 的库；
+4. 对于无法 Tree-Shaking 的库，进行按需引入模块，例如使用 `babel-plugin-import` 按需引入 antd 组件库；
+5. 使用 webpack 的 `splitChunksPlugin` ，把运行时、被引用多次的库打包在一起，避免某一个库被多次引用，多次打包；
+
+Webpack 内置了代码压缩功能，设置 `mode: "production"` 即可启用，但是自带的功能比较简单，通常不能满足项目需求，这个时候就要安装 `plugin` 来实现。
+
 在 webpack 4.x 版本使用 `uglifyjs-webpack-plugin` 或者 `parallel-uglify-plugin` 多进程压缩 JS ，但是 webpack 5 的文档已经找不到这两个 plugin 了，取而代之的是 `terser-webpack-plugin` ，默认开启了多进程和缓存。
+
+> `uglifyjs-webpack-plugin` 的事件钩子 `optimizeChunkAssets` 已经废弃了，在 `terser-webpack-plugin` 中改为了 `processAssets`
 
 webpack v5 开箱即带有最新版本的 `terser-webpack-plugin`。如果你使用的是 webpack v5 或更高版本，同时希望自定义配置，那么仍需要安装 `terser-webpack-plugin` ：
 
@@ -1579,6 +1693,8 @@ module.exports = merge(baseConfig, {
 ```
 
 > 这边配置了在生产环境下移除 `console.*` 和 `debugger` ，其他配置项使用默认值即可，如要修改建议仔细阅读文档，否则可能引入 bug
+
+这边顺便提一下，本人之前维护过一个老项目，开发环境和生产环境用的都是一个配置，代码压缩使用 `uglifyJs` ，没有额外配置，但是 `uglifyJs` 的 `drop_debugger` 默认是 `true` 的，因此即使在代码中使用 `debugger` ，打包之后也会被去掉，所以打断点只能在浏览器开发者工具的 Source 面板操作，很不方便。
 
 
 
