@@ -10,6 +10,8 @@ type State = {};
 
 class App extends React.Component<Props, State> {
   handleClick(): void {
+    let a;
+    let b;
     console.log(process.env.NODE_ENV);
     console.log(process.env.REACT_APP_BASE);
   }

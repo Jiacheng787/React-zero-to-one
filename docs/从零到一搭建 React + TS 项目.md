@@ -48,12 +48,16 @@ const webpack = require("webpack");
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
+  mode: "development",
   entry: './src/index.js',
   output: {
     path: path.resolve(__dirname, './dist'),
     // [hash] 在 Webpack 5 中已经废弃了
     // 可以使用 fullhash、chunkhash 或者 contenthash
     filename: '[contenthash].bundle.js',
+    // Webpack 5 清理目录不再需要单独安装插件
+    // 如果不清理目录，由于文件哈希机制，新构建出的文件不会覆盖之前的内容，导致构建产物越来越多
+    clean: true
   },
   devServer: {
     // 在 Webpack 5 中不再使用 contentBase 和 publicPath ，改成了 static
@@ -79,6 +83,8 @@ module.exports = {
   ]
 }
 ```
+
+> 题外话，在真实场景中，我们不会直接使用 `webpack-dev-server`，而采用 `express` + `webpack-dev-middleware` ，配置方法与上面所述的完全相同
 
 接下来在建一个 `src` 目录，创建 `index.js` ，随便写点内容：
 
@@ -183,7 +189,7 @@ You may need an appropriate loader to handle this file type, currently no loader
 
 > `.jsx` 实际上和 `.vue` 类似，在开发阶段通过 IDE 进行语法支持，打包编译阶段通过专门的 loader 去编译
 
-这里我们先安装一下 `babel` 以及在 webpack 中使用的 `babel-loader` ：
+这里我们先安装一下 `@babel/core` 以及在 webpack 中使用的 `babel-loader` ：
 
 ```bash
 $ npm i @babel/core babel-loader -D
@@ -215,6 +221,8 @@ module: {
 },
 ```
 
+> 假如不用 webpack 而是希望通过 `npx babel` 命令去编译模块，则需要安装 `@babel/cli`
+
 然后我们来安装 `@babel/preset-react` 来转换 `jsx` 语法：
 
 ```bash
@@ -231,7 +239,9 @@ module.exports  = {
 }
 ```
 
-> Babel 7.x 以上可以直接使用 `babel.config.js` ，也可以用 `json` 配置文件
+> Babel 可以使用单独配置文件，也可以将配置写到 `package.json` 里面，还可以通过 `babel-loader` 传递配置
+>
+> Babel 配置文件一般是根目录下的 `.babelrc` ，Babel 7.x 以上可以直接使用 `babel.config.js` ，也可以用 `json` 配置文件
 
 再次运行项目就可以正常使用 JSX 了。
 
@@ -239,9 +249,9 @@ module.exports  = {
 
 有的环境下可能需要转换几十种不同语法的代码，则需要配置几十个`plugin`，这显然会非常繁琐。所以，为了解决这种问题，`babel`提供了预设插件机制`preset`，`preset`中可以**预设置一组插件来便捷的使用这些插件所提供的功能**。目前，`babel`官方推荐使用`@babel/preset-env`预设插件。
 
-`@babel/preset-env`主要的作用是用来转换那些已经被**正式纳入`TC39`中的语法**。所以它无法对那些还在提案中的语法进行处理，对于处在`stage`中的语法，需要安装对应的`plugin`进行处理。
+`@babel/preset-env`主要的作用是用来转换那些已经被**正式纳入`TC39`中的语法**。所以它无法对那些还在提案中的语法进行处理，对于处在 `stage` 中的语法，需要安装对应的 `plugin` 进行处理。
 
-除了语法转换，`@babel/preset-env`另一个重要的功能是**对`api`的处理，也就是在代码中引入`polyfill`**。例如浏览器环境不支持 Promise ，就可以通过引入 polyfill 来实现 Promise 。`@babel/preset-env`主要是依赖`core-js`来处理`api`的兼容性，所以需要事先安装`core-js`。当设置了`useBuiltIns`选项（不为`false`）时，就会使用`core-js`来对`api`进行处理。
+除了语法转换，`@babel/preset-env`另一个重要的功能是**对`api`的处理，也就是在代码中引入`polyfill`**。假如没有进行 ployfill ，通过观察编译后的代码，`let` 、`const` 会被编译成 `var` ，箭头函数会被编译为普通函数等等，但是 `Symbol` 、`Promise` 、`[].includes` 、`arr[Symbol.iterator]()` 等 api 还是保持原样输出。`@babel/preset-env`主要是依赖`core-js`来处理`api`的兼容性，所以需要事先安装`core-js`。当设置了`useBuiltIns`选项（不为`false`）时，就会使用`core-js`来对`api`进行处理。
 
 ```bash
 $ npm i @babel/preset-env core-js -D
@@ -251,17 +261,20 @@ $ npm i @babel/preset-env core-js -D
 
 ```js
 module.exports = {
-  "presets": [
+  presets: [
     [
       "@babel/preset-env",
       {
+        // false 代表不引入 polyfill
+        // entry 会根据配置的 browserslist 将目标浏览器不兼容的 polyfill 全量引入
+        // usage 会根据配置的 browserslist 以及代码中用到的 API 按需添加 polyfill
         useBuiltIns: "usage",
         corejs: 3
       }
     ],
     "@babel/preset-react"
   ],
-  "plugins": []
+  plugins: []
 }
 ```
 
@@ -275,17 +288,27 @@ module.exports = {
 
 <img src="README.assets/Screen Shot 2021-08-26 at 7.20.45 PM.png" alt="Screen Shot 2021-08-26 at 7.20.45 PM" style="zoom:50%;" />
 
-一种解决思路是将这些函数声明都放在一个 npm 包里面，然后使用的时候从包里面引入。`@babel/runtime` 就是上面说的这个包，把所有语法转换用到的辅助函数集成到了一起：
+一种解决思路是将这些函数声明都放在一个 npm 包里面，然后使用的时候从包里面引入。`@babel/runtime` 就是上面说的这个包，把所有语法转换用到的辅助函数集成到了一起。
 
-<img src="README.assets/Screen Shot 2021-08-26 at 7.41.36 PM.png" alt="Screen Shot 2021-08-26 at 7.41.36 PM" style="zoom:50%;" />
+> `@babel/runtime` 是由 Babel 提供的 polyfill 库，它本身就是由 `core-js` 与 `regenerator-runtime` 组成，除了做简单的合并与映射外，并没有做任何额外的加工
 
-那么只要将语法转换后的 helper 函数声明手动替换成 `require("@babel/runtime/helpers/...")` 的形式就可以了。 但是这些 helper 函数如果一个个记住并手动引入，会增加很多工作量，这时候可以用 `@babel/plugin-transform-runtime` 这个插件来解决问题：
+那么只要将语法转换后的 helper 函数声明手动替换成 `require("@babel/runtime/helpers/...")` 的形式就可以了。 但是这些 helper 函数如果一个个记住并手动引入，会增加很多工作量，事实上严谨的使用还要配合 `interopRequireDefault()` ，这时候可以用 `@babel/plugin-transform-runtime` 这个插件来解决问题：
 
 ```bash
 $ npm i @babel/plugin-transform-runtime -D
 ```
 
 > 确保已经装了 `@babel/runtime` ，可以到 `node_modules` 里面看下
+
+`@babel/plugin-transform-runtime` 可以**自动且按需进行 polyfill** ，从一定程度上控制了 `polyfill` 文件的大小。此外插件会实现一个**沙盒 (sandbox)** ，没有全局变量和 `prototype` 污染。通过观察转换后的代码，插件至始至终没有在 Global 对象下挂在全局的 `Symbol` 和 `Promise` 变量，这样一来如果使用 bluebird 之类的第三方 polyfill 也不会受此影响。
+
+看大佬的文章说 `@babel/plugin-transform-runtime` 不会对实例方法进行 polyfill ，例如数组的 `includes` 和 `filter` ，但是对静态方法会进行 polyfill ，例如 `Array.isArray` 。经过本人实验，这是在 `corejs` 配置项设为 `2` 的结果。不过 `corejs` 设为 `3` 之后，实例方法就会被 polyfill 。
+
+这边总结下 `@babel/plugin-transform-runtime` 主要的三个作用：
+
+- 自动引入 `@babel/runtime/regenerator` ，当你使用了 `generator/async` 函数 (通过 `regenerator` 选项打开，默认为 `true`)
+- 提取一些 babel 中的 helper 函数来达到减小打包体积的作用
+- 如果开启了 `corejs` 选项(默认为 `false`)，会自动建立一个沙箱环境，避免和全局引入的 polyfill 产生冲突
 
 然后修改 `babel.config.js` 如下：
 
@@ -313,6 +336,9 @@ module.exports = {
     [
       '@babel/plugin-transform-runtime',
       {
+        // false 从 @babel/runtime 中引入 helper 函数
+        // 2 从 @babel/runtime-corejs2 中引入 helper 函数和 polyfill
+        // 3 从 @babel/runtime-corejs3 中引入 helper 函数和 polyfill
         corejs: 3,
         helpers: true,
         regenerator: true,
@@ -323,17 +349,11 @@ module.exports = {
 }
 ```
 
-再次运行项目，报了几个错误：
-
-> Can't resolve '@babel/runtime-corejs3/helpers/esm/classCallCheck'
-
-报错的原因应该跟配置有关系，我们在 `babel.config.js` 里面配置的是 `corejs: 3` ，然后 `@babel/plugin-transform-runtime` 没有去 `@babel/runtime` 里面找，而是到了 `@babel/runtime-corejs3` 里面去找。那就按照提示装一下：
+由于我们给 `@babel/plugin-transform-runtime` 的 `corejs` 配置项传了 `3` ，因此需要安装下 `@babel/runtime-corejs3` ：
 
 ```bash
 $ npm i @babel/runtime-corejs3 -D
 ```
-
-> 安装过程中出现了 `core-js` 安装的提示，貌似 `core-js` 不用单独安装
 
 再次编译之后可以发现，helper 函数都改为统一引入的形式了。
 
@@ -358,7 +378,7 @@ $ npm i @babel/runtime-corejs3 -D
 @babel/plugin-syntax-dynamic-import
 // 将 ES2017 async 函数编译为 ES2015 generator
 @babel/plugin-transform-async-to-generator
-// ES2015 generator 降级处理
+// Facebook 提供的运行时库，ES2015 generator 和 yield 的 polyfill
 @babel/plugin-transform-regenerator
 // 对象展开，ES2018 语法
 @babel/plugin-proposal-object-rest-spread
@@ -376,7 +396,7 @@ $ npm i @babel/plugin-proposal-decorators -D
 
 动态引入 `import()` 插件不包含 `Promise` 的实现，如果在不支持 `Promise` 的环境使用，则需要引入 `Promise` 和 `Iterator` 的 polyfill ；
 
-ES2015 的展开运算符实际上只适用于展开到数组的情形，并且内部是基于 `for...of` 迭代，因此被展开的也必须是可迭代对象（实现了 `Iterator` 接口的对象，例如数组、字符串、`Set` 、`Map`）。直到 ES2018 才将展开运算符扩充到对象使用，允许将普通对象或者可迭代对象展开到一个普通对象内，但是注意普通对象仍然不能展开到数组（因为普通对象没有实现 `Iterator` 接口）。
+ES2015 的展开运算符实际上只适用于展开到数组的情形，并且内部是基于 `for...of` 迭代，因此被展开的也必须是可迭代对象（实现了 `Iterator` 接口的对象，例如数组、字符串、`Set` 、`Map`）。直到 ES2018 才将展开运算符扩充到对象使用，允许将普通对象或者可迭代对象展开到一个普通对象内，用法等价于 `Object.assign()` 。但是注意普通对象仍然不能展开到数组（因为普通对象没有实现 `Iterator` 接口）。
 
 类属性语法，Babel 官网有一个例子：
 
@@ -644,15 +664,25 @@ ReactDOM.render(
 devtool: "source-map"
 ```
 
-开启 `sourceMap` 会拖慢打包速度，因此建议只在**开发环境**启用。此外，webpack 提供了多种类型可以使用，其中 `source-map` 最完整，可以精确定位到源码，但是速度最慢，生成的 `.map` 文件体积最大，其他还包括  `eval` 、`inline` 、`cheap` 等，在 Vue-cli 中的配置如下：
+开启 `sourceMap` 会拖慢打包速度，webpack 提供了多种类型可以使用，其中 `source-map` 最完整，可以精确定位到源码，但是速度最慢，生成的 `.map` 文件体积最大，其他还包括  `eval` 、`inline` 、`cheap` 等。开发环境对 sourceMap 的要求是：快（eval），信息全（module），且由于此时代码未压缩，我们并不那么在意代码列信息（cheap），所以开发环境推荐配置：
 
 ```js
 devtool: "eval-cheap-module-source-map"
 ```
 
+> 这也是 Vue-cli 中的默认配置
+
+在生产环境下，我们并不希望任何人都可以在浏览器直接看到我们未编译的源码，所以可以选择不开启 sourceMap 。但很多时候又需要 sourceMap 来定位错误信息，这种情况下，我们希望 webpack 会生成 sourcemap 文件以提供给错误收集工具比如 sentry，另一方面又不会为 bundle 添加引用注释，以避免浏览器使用，我们可以设置：
+
+```js
+devtool: "hidden-source-map"
+```
+
 有关 `sourceMap` 的介绍可以参考：
 
 [何为SourceMap？讲讲SourceMap食用姿势](https://juejin.cn/post/7008039749747212319)
+
+[万字长文：关于sourcemap，这篇文章就够了](https://juejin.cn/post/6969748500938489892)
 
 
 
@@ -797,7 +827,7 @@ rules: [
 
 
 
-### 14) 使用 postcss autoprefixer 添加 CSS 前缀
+### 14) 生产环境使用 postcss autoprefixer 添加 CSS 前缀
 
 这里我们用到 `PostCSS` 这个 `loader`，它是一个 CSS **预处理工具**，可以为 CSS3 的属性**添加前缀**，样式格式校验（`stylelint`），提前使用 `CSS` 新特性，实现 `CSS` 模块化，防止 `CSS` 样式冲突。
 
@@ -891,6 +921,14 @@ module.exports = {
 
 ### 15) Webpack 处理图片和字体
 
+> Webpack 只会打包 JS 文件，如果要打包其它文件就需要加上相应的 loader
+
+在 Webpack5 之前，我们一般都会使用以下几个 loader 来处理一些常见的静态资源，比如 PNG 图片、SVG 图标等等，他们的最终的效果大致如下所示：
+
+- raw-loader：允许将文件处理成一个字符串导入
+- file-loader：将文件打包导到输出目录，并在 import 的时候返回一个文件的 URI
+- url-loader：当文件大小达到一定要求的时候，可以将其处理成 base64 的 URIS ，内置 file-loader
+
 在 Webpack 4 里面通常会用到 `url-loader` 和 `file-loader` ，对于体积较小的图片，可以使用 `url-loader` 转为 Base64 ，然后通过 DataURL 引入（在雅虎军规中被称为 Inline Image），避免额外的网络请求。但是转成 Base64 存在一个问题，文件的体积会比原来大三分之一，对于体积较大的图片就不合适了，这个时候就可以使用 `file-loader` ，直接将图片拷贝到 dist 目录下，然后修改打包后文件引用路径，使之指向正确的文件。实际上，`url-loader` 已经封装了 `file-loader` ，通过配置 `limit` 参数，小于 `limit` 字节的文件会被转为 DataURL ，大于 `limit` 的会使用 `file-loader` 进行 copy 。
 
 ```js
@@ -926,7 +964,7 @@ module: {
 }
 ```
 
-在 Webpack 5 里面新增 Asset Modules ，不用再装额外的 loader ：
+在 Webpack 5 里面新增 Asset Modules 提供了内置的静态资源构建能力，我们不需要安装额外的 loader，仅需要简单的配置就能实现静态资源的打包和分目录存放：
 
 ```js
 entry: './src/index.tsx',
@@ -958,6 +996,13 @@ module: {
 	]
 },
 ```
+
+其中 type 取值如下几种：
+
+- asset/source ——功能相当于 raw-loader。
+- asset/inline——功能相当于 url-loader，若想要设置编码规则，可以在 generator 中设置 dataUrl。具体可参见[官方文档](https://link.juejin.cn?target=https%3A%2F%2Fwebpack.js.org%2Fguides%2Fasset-modules%2F%23custom-data-uri-generator)。
+- asset/resource——功能相当于 file-loader。项目中的资源打包统一采用这种方式，得益于团队项目已经完全铺开使用了 HTTP2 多路复用的相关特性，我们可以将资源统一处理成文件的形式，在获取时让它们能够并行传输，避免在通过编码的形式内置到 js 文件中，而造成资源体积的增大进而影响资源的加载。
+- asset—— 默认会根据文件大小来选择使用哪种类型，当文件小于 8 KB 的时候会使用 asset/inline，否则会使用 asset/resource。也可手动进行阈值的设定，具体可以参考[官方文档](https://link.juejin.cn?target=https%3A%2F%2Fwebpack.js.org%2Fguides%2Fasset-modules%2F%23general-asset-type)。
 
 我们在 `src/assets` 目录下放一张图片，然后到 `App.tsx` 里面引入测试一下：
 
@@ -994,7 +1039,84 @@ declare module '*.tiff'
 
 
 
-### 16) 模块路径别名
+### 16) 复制静态资源到打包目录
+
+有些静态资源是下载到本地通过外链脚本引入的，通常下载之后放在 `public/js` 目录下，然后在 `public/index.html` 中通过 `script` 标签引入。这个时候 webpack 是没办法处理外链脚本的，打包后会显示找不到资源，我们需要将 `public/js` 的静态资源复制到 `dist` 目录下，这样文件就能找到了。
+
+> 有些静态资源可以直接外链引入，跳过打包，但是需要手动复制到 `dist` 目录下
+
+我们可以使用 `copy-webpack-plugin` 插件：
+
+```bash
+$ npm install copy-webpack-plugin -D
+```
+
+修改配置如下：
+
+```js
+const CopyWebpackPlugin = require("copy-webpack-plugin");
+
+module.exports = {
+  plugins: [
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: "*.js", // 复制所有的 js 文件
+          context: path.resolve(rootDir, "public/js"),
+          to: path.resolve(rootDir, "dist/js")
+        }
+      ]
+    })
+  ]
+}
+```
+
+
+
+### 17) 模块构建缓存
+
+对于大型项目，一次热更新需要十几二十多秒，一次打包需要半个小时，通过配置缓存对构建提速效果最明显。
+
+Webpack5 之前，我们会使用 [cache-loader](https://link.juejin.cn/?target=https%3A%2F%2Fgithub.com%2Fwebpack-contrib%2Fcache-loader) 缓存一些性能开销较大的 loader ，或者是使用 [hard-source-webpack-plugin](https://link.juejin.cn/?target=https%3A%2F%2Fgithub.com%2Fmzgoddard%2Fhard-source-webpack-plugin) 为模块提供一些中间缓存。
+
+在 webpack5 中开箱即用支持了持久化缓存机制。
+
+开发环境：
+
+```js
+module.exports = {
+  cache: {
+    type: "memory"
+  }
+}
+```
+
+生产环境：
+
+```js
+module.exports = {
+  cache: {
+    type: "filesystem",
+    buildDependencies: {
+      // 当构建依赖的config文件（通过 require 依赖）内容发生变化时，缓存失效
+      config: [__filename]
+    },
+    name: ""
+  }
+}
+```
+
+生产环境下默认的缓存存放目录在 `node_modules/.cache/webpack/default-production` 中，如果想要修改，可通过配置 name，来实现分类存放。如设置 `name: 'production-cache'` 时生成的缓存存放位置如下：
+
+![Screen Shot 2021-10-07 at 9.16.10 PM](从零到一搭建 React + TS 项目.assets/Screen Shot 2021-10-07 at 9.16.10 PM.png)
+
+如果你直接通过调用 Webpack compiler 实例的 run 方法执行定制化构建操作时，你可能会遇到**构建缓存最终没有生成缓存文件**的情况，在搜索了 Webpack 的相关 Issues 后我们发现，你还需要手动调用 `compiler.close()` 来输出缓存文件。
+
+> Webpack 显示构建时间  `920ms` ，但实际构建时间在 3 秒左右，可能是因为 typescript 类型检查或者 ESLint 检查花费了额外时间
+
+
+
+### 18) 模块路径别名
 
 刚才我们引入图片使用了相对路径，但是滥用相对路径会导致维护上的问题，例如下面这个路径，我们很难定位到这个模块是从哪里引入的：
 
@@ -1043,7 +1165,7 @@ module.exports = {
 
 
 
-### 18) 配置 ESLint
+### 20) 配置 ESLint
 
 可以配置 `eslint` 来进行语法上静态的检查，也可以对 `ts` 进行检查：
 
@@ -1114,7 +1236,7 @@ dist
 
 
 
-### 19) 配置 Prettier
+### 21) 配置 Prettier
 
 `prettier` 主要做代码风格上的检查，例如字符串双引号还是单引号、缩进、换行问题、是否加尾分号，类似这样的
 
@@ -1355,7 +1477,127 @@ plugins: [
 
 
 
-### 3) 第三方库和业务代码打包进不同的 chunks
+### 3) Webpack 分包策略
+
+雅虎军规中有一个优化策略，就是把所有能打包的静态资源都**打包成一个文件**，例如 JS 、CSS 等。但是自从进入 HTTP/1.1 、HTTP/2 之后，TCP 协议层已经做了很大程度的优化，对于前端来说，请求数量不再是一个迫在眉睫的问题了。另一方面，现代前端工程的复杂度今非昔比，复杂的交互逻辑、繁重的第三方依赖，如果再将所有资源文件都打包在一起，那打包结果的体积将变得非常大，虽然请求数量得到了减少，但是资源的下载速度反而变得很慢，降低页面首屏性能，得不偿失。
+
+> 例如，用户只希望访问博客首页，但是服务器把所有资源打包后的 JS 文件返回给他（包含四个页面），不仅浪费带宽，还导致浏览器加载了很多没用的 JS ，没有必要
+
+最理想的情况是，当用户访问一个页面，服务器只返回这个页面对应的资源。这种情况下，就需要用**异步懒加载**（也被称为**按需加载**）。在定义路由时使用动态引入语法，就可以实现基于路由的组件按需加载：
+
+```js
+// Vue 路由懒加载
+{
+  name: "Home",
+  path: "/home",
+  component: () => import("@/component/Home.vue")
+}
+// React 路由懒加载
+{
+  path: "/Home",
+  component: React.lazy(() => import("@/component/Home.tsx"))
+}
+```
+
+之所以动态引入语法可以实现按需加载，是因为 Webpack 的分包策略，默认对**异步模块**进行单独打包。
+
+除了异步模块分包处理，Webpack 默认还会对 **Entry** 分包和对 **Runtime** 分包。
+
+在生成阶段（seal 阶段），Webpack 首先会遍历 entry 对象，为每一个 entry 单独生成 chunk，之后再根据模块依赖图将 entry 触达到的所有模块打包进 chunk 中：
+
+```js
+module.exports = {
+  entry: {
+    main: "./src/main",
+    home: "./src/home",
+  }
+};
+```
+
+在 Webpack 5 之后还能根据 `entry.runtime` 配置单独打包运行时代码。除了将业务代码打包成一个个函数块之外，Webpack 编译产物中还需要包含一些用于支持 webpack 模块化、异步加载等特性的支撑性代码，这类代码在 webpack 中被称为 `runtime` 。举个例子，产物中通常会包含如下代码：
+
+```js
+/******/ (() => {
+  // webpackBootstrap
+  /******/ var __webpack_modules__ = {}; // The module cache
+  /************************************************************************/
+  /******/ /******/ var __webpack_module_cache__ = {}; // The require function
+  /******/
+
+  /******/ /******/ function __webpack_require__(moduleId) {
+
+    /******/ /******/ __webpack_modules__[moduleId](
+      module,
+      module.exports,
+      __webpack_require__
+    ); // Return the exports of the module
+    /******/
+
+    /******/ /******/ return module.exports;
+    /******/
+  } // expose the modules object (__webpack_modules__)
+  /******/
+
+  /******/ /******/ __webpack_require__.m = __webpack_modules__; /* webpack/runtime/compat get default export */
+  /******/
+
+  // ...
+})();
+```
+
+编译时，Webpack 会根据业务代码决定输出那些支撑特性的运行时代码 (基于 `Dependency` 子类)，例如：
+
+- 需要 `__webpack_require__.f`、`__webpack_require__.r` 等功能实现最起码的模块化支持；
+- 如果用到动态加载特性，则需要写入 `__webpack_require__.e` 函数；
+- 如果用到 Module Federation 特性，则需要写入 `__webpack_require__.o` 函数；
+
+虽然每段运行时代码可能都很小，但随着特性的增加，最终结果会越来越大。特别对于多 entry 应用，在每个入口都重复打包一份相似的运行时代码显得有点浪费。为此 webpack 5 专门提供了 `entry.runtime` 配置项用于声明如何打包运行时代码，用法上只需在 entry 项中添加字符串形式的 `runtime` 值，例如：
+
+```js
+module.exports = {
+  entry: {
+    index: { import: "./src/index", runtime: "solid-runtime" },
+  }
+};
+```
+
+Webpack 执行完 `entry`、异步模块分包后，开始遍历 `entry` 配置判断是否带有 `runtime` 属性，如果有则创建以 `runtime` 值为名的 `Chunk`，因此，上例配置将生成两个chunk：`chunk[index.js]` 、`chunk[solid-runtime]`，并据此最终产出两个文件：
+
+- 入口 index 对应的 `index.js` 文件；
+- 运行时配置对应的 `solid-runtime.js` 文件；
+
+在多 entry 场景中，只要为每个 entry 都设定相同的 runtime 值，webpack 运行时代码最终就会集中写入到同一个 chunk，例如对于如下配置：
+
+```js
+module.exports = {
+  entry: {
+    index: { import: "./src/index", runtime: "solid-runtime" },
+    home: { import: "./src/home", runtime: "solid-runtime" },
+  }
+};
+```
+
+入口 index、home 共享相同的 `runtime` ，最终生成三个 `chunk`，分别为：
+
+- 入口 index 对应的 `index.js` ；
+- 入口 index 对应的 `home.js` ；
+- 运行时代码对应的 `solid-runtime.js` ；
+
+默认分包规则最大的问题是无法解决模块重复，如果多个 chunk 同时包含同一个 `module`，那么这个 `module` 会被不受限制地重复打包进这些 chunk。比如假设我们有两个入口 `main/index` 同时依赖了同一个模块：
+
+![Screen Shot 2021-09-28 at 11.21.31 PM](从零到一搭建 React + TS 项目.assets/Screen Shot 2021-09-28 at 11.21.31 PM.png)
+
+默认情况下，webpack 不会对此做额外处理，只是单纯地将 c 模块同时打包进 `main/index` 两个 chunk，最终形成：
+
+![Screen Shot 2021-09-28 at 11.22.38 PM](从零到一搭建 React + TS 项目.assets/Screen Shot 2021-09-28 at 11.22.38 PM.png)
+
+为了解决这个问题，webpack 3 引入 `CommonChunkPlugin` 插件试图将 entry 之间的公共依赖提取成单独的 chunk，但 `CommonChunkPlugin` 本质上是基于 Chunk 之间简单的父子关系链实现的，很难推断出提取出的第三个包应该作为 entry 的父 chunk 还是子 chunk，`CommonChunkPlugin` 统一处理为父 chunk，某些情况下反而对性能造成了不小的负面影响。
+
+在 webpack 4 之后则引入了更负责的设计 —— `ChunkGroup` 专门实现关系链管理，配合 `SplitChunksPlugin` 能够更高效、智能地实现**启发式分包**，这里的内容很复杂，我打算拆开来在下一篇文章再讲，感兴趣的同学记得关注。
+
+
+
+第三方库和业务代码打包进不同的 chunks
 
 将 `node_modules` 里面的开发依赖和业务代码分别打包进不同的 chunks ，可以使用 `SplitChunksPlugin` 。
 
@@ -1452,16 +1694,20 @@ const autoPrefixer = require("autoprefixer");
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ProgressBarPlugin = require('progress-bar-webpack-plugin');
 const chalk = require('chalk');
-const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+
+// 获取当前工作目录
+const rootDir = process.cwd();
 
 module.exports = {
   // 由于配置文件不在根目录，注意路径引用问题
-  entry: path.resolve(__dirname, '../src/index.tsx'),
+  // 推荐使用 process.cwd() 直接获取当前工作目录
+  entry: path.resolve(rootDir, './src/index.tsx'),
   output: {
     // 由于配置文件不在根目录，注意路径引用问题
-    path: path.resolve(__dirname, '../dist'),
+    path: path.resolve(rootDir, './dist'),
     filename: 'js/[contenthash].[name].js',
     assetModuleFilename: 'static/[hash][ext]',
+    clean: true
   },
   module: {
     rules: [
@@ -1472,9 +1718,9 @@ module.exports = {
     extensions: ['.tsx', '.ts', '.jsx', '.js', '.json', '.d.ts'],
     // 由于配置文件不在根目录，注意路径引用问题
     alias: {
-      "@": path.resolve(__dirname, "../src"),
-      "@assets": path.resolve(__dirname, "../src/assets"),
-      "@components": path.resolve(__dirname, "../src/components"),
+      "@": path.resolve(rootDir, "./src"),
+      "@assets": path.resolve(rootDir, "./src/assets"),
+      "@components": path.resolve(rootDir, "./src/components"),
     }
   },
   plugins: [
@@ -1483,7 +1729,7 @@ module.exports = {
     }),
     new HtmlWebpackPlugin({
       // 由于配置文件不在根目录，注意路径引用问题
-      template: path.join(__dirname, '../public/index.html'),
+      template: path.join(rootDir, './public/index.html'),
       title: "react-zero-to-one",
       filename: "index.html",
       minify: {
@@ -1494,8 +1740,7 @@ module.exports = {
     new MiniCssExtractPlugin({
       filename: 'css/[name].[contenthash:8].css',
       chunkFilename: '[id].css'
-    }),
-    new CleanWebpackPlugin()
+    })
   ],
   optimization: {
     splitChunks: {
@@ -1523,14 +1768,17 @@ const webpack = require("webpack");
 const { merge } = require("webpack-merge");
 const baseConfig = require("./webpack.base.config");
 
+// 获取当前工作目录
+const rootDir = process.cwd();
+
 module.exports = merge(baseConfig, {
   mode: "development",
   // 开发环境下开启 sourceMap
-  devtool: "source-map",
+  devtool: "eval-cheap-module-source-map",
   // 只有在开发环境才启用 devServer
   devServer: {
     // 由于配置文件不在根目录，注意路径引用问题
-    static: path.resolve(__dirname, '../dist'),
+    static: path.resolve(rootDir, './dist'),
     compress: true,
     hot: true,
     open: true,

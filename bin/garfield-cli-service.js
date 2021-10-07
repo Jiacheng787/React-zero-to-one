@@ -10,14 +10,16 @@ const parseArgs = require('minimist');
 const args = parseArgs(process.argv.slice(2));
 const { _: [command], NODE_ENV } = args;
 
-const webpackConfig = webpackConfigStrategy(NODE_ENV);
+setEnvParam(command, NODE_ENV);
+
+const webpackConfig = webpackConfigStrategy();
 
 const compiler = webpack(webpackConfig);
 // 在 Webpack 4 中是先传入 compiler ，再传入 options
 // Webpack 5 传参反一下
 const server = new WebpackDevServer({
   ...webpackConfig.devServer,
-  open: true,
+  open: false,
 }, compiler);
 
 // Webpack 4 使用 listen() 方法启动开发服务器
@@ -34,14 +36,23 @@ const server = new WebpackDevServer({
 })();
 
 
-function webpackConfigStrategy(env) {
+function webpackConfigStrategy() {
   // TODO: 增加 staging 环境支持
   let strategy = {
     development: () => require(path.resolve(__dirname, "../build/webpack.dev.config.js")),
     production: () => require(path.resolve(__dirname, "../build/webpack.prod.config.js")),
   }
+  const env = process.env.NODE_ENV;
   if (!env || !Object.keys(strategy).includes(env)) {
     return {};
   }
   return strategy[env]();
+}
+
+function setEnvParam(command, env) {
+  if (command === "serve") {
+    process.env.NODE_ENV = env || "development";
+  } else if (command === "build") {
+    process.env.NODE_ENV = env || "production";
+  }
 }
