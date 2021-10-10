@@ -1106,6 +1106,10 @@ module.exports = {
 }
 ```
 
+`cache.buildDependencies` 是一个针对构建的额外代码依赖的数组对象。webpack 将使用这些项和所有依赖项的哈希值来使文件系统缓存失效。
+
+> 推荐在 webpack 配置中设置 `cache.buildDependencies.config: [__filename]` 来获取最新配置以及所有依赖项
+
 生产环境下默认的缓存存放目录在 `node_modules/.cache/webpack/default-production` 中，如果想要修改，可通过配置 name，来实现分类存放。如设置 `name: 'production-cache'` 时生成的缓存存放位置如下：
 
 ![Screen Shot 2021-10-07 at 9.16.10 PM](从零到一搭建 React + TS 项目.assets/Screen Shot 2021-10-07 at 9.16.10 PM.png)
@@ -1988,6 +1992,7 @@ Webpack 有一个 `mode` 选项，当我们设为 `development` ，会将 `Defin
 
 ```js
 .env.development
+.env.staging
 .env.production
 ```
 
@@ -2112,6 +2117,51 @@ module.exports = {
 ```
 
 我们可以使用 `npm run build:dev` 打开发环境的包，使用 `npm run build:prod` 打生产环境的包。
+
+这边还有一个问题，create-react-app 创建的项目，环境变量只能以 `REACT_APP_` 开头，这是什么原因？我们找到源码：
+
+```js
+// packages/react-scripts/config/env.js:41
+// 这边使用 dotenv 将 .env* 文件加载到 process.env 中
+dotenvFiles.forEach(dotenvFile => {
+  if (fs.existsSync(dotenvFile)) {
+    require('dotenv-expand')(
+      require('dotenv').config({
+        path: dotenvFile,
+      })
+    );
+  }
+});
+
+// 这边模块暴露一个方法，从 process.env 读取环境变量提供给 DefinePlugin
+// 可以看到对 process.env 的 key 进行正则校验
+const REACT_APP = /^REACT_APP_/i;
+function getClientEnvironment(publicUrl) {
+  const raw = Object.keys(process.env)
+    .filter(key => REACT_APP.test(key))
+    .reduce(
+      (env, key) => {
+        env[key] = process.env[key];
+        return env;
+      },
+      {
+        NODE_ENV: process.env.NODE_ENV || 'development',
+        // ...
+      }
+     );
+  
+  const stringified = {
+    'process.env': Object.keys(raw).reduce((env, key) => {
+      env[key] = JSON.stringify(raw[key]);
+      return env;
+    }, {}),
+  };
+
+  return { raw, stringified };
+}
+
+module.exports = getClientEnvironment;
+```
 
 
 
