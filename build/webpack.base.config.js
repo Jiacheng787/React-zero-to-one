@@ -1,11 +1,10 @@
 const path = require('path');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const webpack = require("webpack");
 const autoPrefixer = require("autoprefixer");
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const ProgressBarPlugin = require('progress-bar-webpack-plugin');
-const chalk = require('chalk');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
-
+// 从 .env 文件中读取环境变量，加载到 Node 的 process.env 中
+const envParams = require('dotenv').config({ path: path.resolve(__dirname, `../.env.${process.env.NODE_ENV}`) });
 
 module.exports = {
   entry: path.resolve(__dirname, '../src/index.tsx'),
@@ -23,15 +22,17 @@ module.exports = {
           loader: 'babel-loader',
         },
       },
-      {
-        test: /\.css$/i,
-        include: /node_modules/,
-        use: [
-          // 'style-loader',
-          MiniCssExtractPlugin.loader,
-          'css-loader'
-        ],
-      },
+      // antd 组件库样式
+      // {
+      //   test: /\.css$/i,
+      //   include: /node_modules/,
+      //   use: [
+      //     // 生产环境下将 CSS 抽取到单独的样式文件中
+      //     devMode ? 'style-loader' : MiniCssExtractPlugin.loader,
+      //     'css-loader'
+      //   ],
+      // },
+      //业务组件样式
       {
         test: /\.s[ac]ss$/i,
         exclude: /node_modules/,
@@ -85,9 +86,6 @@ module.exports = {
     }
   },
   plugins: [
-    // new ProgressBarPlugin({
-    //   format: `:msg [:bar] ${chalk.green.bold(':percent')} (:elapsed s)`
-    // }),
     new HtmlWebpackPlugin({
       template: path.join(__dirname, '../public/index.html'),
       title: "react-zero-to-one",
@@ -97,10 +95,8 @@ module.exports = {
         removeComments: true,
       }
     }),
-    new MiniCssExtractPlugin({
-      filename: 'css/[name].[contenthash:8].css', // 最终输出的文件名
-      chunkFilename: '[id].css'
-    }),
+    // 从 process.env 读取环境变量，传入 DefinePlugin
+    new webpack.EnvironmentPlugin(Object.keys(envParams.parsed)),
     new CleanWebpackPlugin()
   ],
   optimization: {

@@ -1,13 +1,17 @@
 {
   "name": "react-zero-to-one",
   "version": "1.0.0",
+  "bin": {
+    "garfield-cli-service": "bin/garfield-cli-service.js"
+  },
   "description": "从零到一搭建 React 项目。",
   "main": "index.js",
   "scripts": {
     "dev": "webpack-dev-server --config build/webpack.dev.config.js",
     "build:dev": "webpack --config build/webpack.dev.config.js",
     "build:prod": "webpack --config build/webpack.prod.config.js",
-    "lint": "eslint src --fix"
+    "lint": "eslint src --fix",
+    "serve": "node ./bin/garfield-cli-service.js serve --NODE_ENV=development"
   },
   "keywords": [],
   "author": "",
@@ -36,18 +40,22 @@
     "clean-webpack-plugin": "^4.0.0-alpha.0",
     "core-js": "^3.16.2",
     "css-loader": "^6.2.0",
+    "css-minimizer-webpack-plugin": "^3.0.2",
     "dotenv": "^10.0.0",
     "eslint": "^7.32.0",
     "eslint-plugin-react": "^7.24.0",
+    "eslint-webpack-plugin": "^3.0.1",
     "figlet": "^1.5.2",
     "html-webpack-plugin": "^5.3.2",
     "internal-ip": "^6.2.0",
     "mini-css-extract-plugin": "^2.2.0",
+    "minimist": "^1.2.5",
     "postcss-loader": "^6.1.1",
     "progress-bar-webpack-plugin": "^2.1.0",
     "sass": "^1.38.1",
     "sass-loader": "^12.1.0",
     "style-loader": "^3.2.1",
+    "terser-webpack-plugin": "^5.2.4",
     "typescript": "^4.3.5",
     "webpack": "^5.51.1",
     "webpack-cli": "^4.8.0",
