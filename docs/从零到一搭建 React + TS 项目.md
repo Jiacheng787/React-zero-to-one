@@ -711,9 +711,47 @@ module: {
 }
 ```
 
-> 这边配置的 loader 主要是**处理第三方组件库的样式**，项目中编写业务组件通常不用 CSS ，而是使用 Sass、Less 等预编译器，对于预编译器的处理下面会讲
+> 这边配置的 loader 主要是 **处理第三方组件库的样式**，项目中编写业务组件通常不用 CSS ，而是使用 Sass、Less 等预编译器，对于预编译器的处理下面会讲
 
+关于 `css-loader` 的说明：
 
+`css-loader` 可以传入一个配置项，常用的有三个配置：
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        loader: "css-loader",
+        options: {
+          url: true, // 处理 `url()` 函数
+          import: true, // 处理 `@import`
+          modules: undefined, // 为匹配 /\.module\.\w+$/i 的文件启用 CSS module
+        },
+      },
+    ],
+  },
+};
+```
+
+以上三个配置均为默认配置，`css-loader` 默认会处理 `url()` 函数，处理之后如下：
+
+```css
+url(image.png) => require('./image.png')
+```
+
+> 引入路径支持模块路径别名
+
+`css-loader` 默认会解析 `@import`：
+
+```css
+@import 'style.css' => require('./style.css')
+```
+
+> 引入路径支持模块路径别名
+
+`css-loader` 默认会为匹配 `/\.module\.\w+$/i` 启用 CSS module（不需要手动配置即可启用），配置为 `true` 则为所有文件启用 CSS module，如果不需要 CSS module，设置为 `false` 值会提升性能，因为避免了 CSS Modules 特性的解析。
 
 ### 12) 引入 Sass
 
@@ -819,7 +857,7 @@ rules: [
 ]
 ```
 
-> 在 `css-loader` 和 `sass-loader` 都可以通过设置 `options` 选项启用 `sourceMap`
+> 在 `css-loader` 和 `sass-loader` 都可以通过 `options` 选项设置 `sourceMap`，默认值都是 `compiler.devtool`，如果 `devtool` 选项启用 sourceMap，那么 CSS 的 sourceMap 也会启用
 
 再重新打包，看下 `index.html` 的样式，样式已经定位到源文件上了：
 
