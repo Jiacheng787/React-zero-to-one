@@ -115,8 +115,8 @@ document.body.appendChild(div);
 
 ```json
 "scripts": {
-  "dev": "npx webpack-dev-server --mode development --open",
-  "build": "npx webpack --mode production"
+  "dev": "webpack serve --mode development --open",
+  "build": "webpack --mode production"
 }
 ```
 

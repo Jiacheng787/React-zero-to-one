@@ -7,7 +7,7 @@
   "description": "从零到一搭建 React 项目。",
   "main": "index.js",
   "scripts": {
-    "dev": "webpack-dev-server --config build/webpack.dev.config.js",
+    "dev": "webpack serve --config build/webpack.dev.config.js",
     "build:dev": "webpack --config build/webpack.dev.config.js",
     "build:prod": "webpack --config build/webpack.prod.config.js",
     "lint": "eslint src --fix",
