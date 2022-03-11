@@ -720,8 +720,8 @@ Webpack 默认只编译 JS 文件，如果还需要编译 CSS 文件，就需要
 $ npm i style-loader css-loader -D
 ```
 
-- `css-loader` ： 用于处理 `css` 文件，将 `css` 编译为 JS 模块，使得能在 JS 文件中引入使用；
-- `style-loader` ： 用于将 `css` 文件注入到 `index.html` 中的 `<style>` 标签上；
+- `css-loader` ： 用于处理 `css` 文件，将 `css` 编译为 JS 模块，使得能在 JS 文件中引入使用，同时支持 CSS module；
+- `style-loader` ： 用于将 `css` 文件注入到 `index.html` 中的 `<style>` 标签上，用于开发环境，同时提供样式热更新；
 
 `webpack.config,js` 中添加配置如下：
 
