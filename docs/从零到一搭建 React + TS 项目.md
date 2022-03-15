@@ -2229,13 +2229,13 @@ module.exports = getClientEnvironment;
 
 
 
-### 7) 配置路由
+### 7) 生态篇 - React Router
+
+[「React进阶」react-router v6 通关指南](https://juejin.cn/post/7069555976717729805)
 
 
 
-
-
-### 8) 配置全局状态管理
+### 8) 生态篇 - React Redux
 
 
 
