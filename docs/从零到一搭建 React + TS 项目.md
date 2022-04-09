@@ -2237,8 +2237,16 @@ module.exports = getClientEnvironment;
 
 ### 8) 生态篇 - React Redux
 
+React 常用状态管理库
 
-
+- Redux
+- Mobx
+- dva/umi
+- Recoil
+- Hookstate
+- Rematch
+- Jotai
+- Zustand
 
 
 ### 9) 配置网络请求库
