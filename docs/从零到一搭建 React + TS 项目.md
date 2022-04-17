@@ -2239,6 +2239,8 @@ module.exports = getClientEnvironment;
 
 ### 8) 生态篇 - React Redux
 
+[用 Redux 做状态管理，真的很简单🦆](https://juejin.cn/post/7071066976830881823)
+
 React 常用状态管理库
 
 - Redux
