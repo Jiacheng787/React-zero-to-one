@@ -2229,15 +2229,15 @@ module.exports = getClientEnvironment;
 
 
 
-### 7) 生态篇 - React Router
+### 7) 生态篇
 
 ⭐️ [2022 年的 React 生态](https://juejin.cn/post/7085542534943883301)
 
+#### React Router
+
 [「React进阶」react-router v6 通关指南](https://juejin.cn/post/7069555976717729805)
 
-
-
-### 8) 生态篇 - React Redux
+#### React Redux
 
 [用 Redux 做状态管理，真的很简单🦆](https://juejin.cn/post/7071066976830881823)
 
@@ -2252,6 +2252,11 @@ React 常用状态管理库
 - Jotai
 - Zustand
 
+#### React-transition-group
+
+https://github.com/reactjs/react-transition-group
+
+https://reactcommunity.org/react-transition-group/css-transition
 
 ### 9) 配置网络请求库
 
