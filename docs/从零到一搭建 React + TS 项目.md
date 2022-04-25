@@ -528,12 +528,47 @@ https://github.com/babel/preset-modules
 
 ### 9) 引入 TypeScript
 
-项目引入 `ts` 的话有两种方式：
+首先 TypeScript 代码是可以直接安装 `typescript` 然后使用 `tsc` 命令进行编译的。但是在 Webpack 打包的项目中需要怎么用呢，主要有下面几种方案：
+
+1\. 使用 `ts-loader` 调用 `tsc` 编译 `ts`、`tsx` 后缀的文件，同时进行类型检查（类型检查比较耗时）
+2\. 使用 `ts-loader` 调用 `tsc` 编译 `ts`、`tsx` 后缀的文件，但不进行类型检查，而是使用 `ForkTsCheckerWebpackPlugin` 单独起一个进程进行类型检查
+
+```js
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+
+module.exports = {
+  // ...
+  module: {
+    rules: [{
+      test: /\.ts$/,
+      use: [
+        {
+          loader: 'ts-loader',
+          options: {
+            // 禁用 `ts-loader` 的类型检查
+            transpileOnly: true
+          }
+        }
+      ],
+    }, ],
+  },
+  plugins:[
+    new ForkTsCheckerWebpackPlugin()
+  ]
+};
+```
+
+3\. 使用 `babel` 编译 `ts`、`tsx` 后缀的文件，使用 `ForkTsCheckerWebpackPlugin` 单独起一个进程进行类型检查（可以复用 Babel 的 AST，CRA 就使用该方案）
+
+
+<!-- 项目引入 `ts` 的话有两种方式：
 
 - 使用 `TypeScript Compiler (TSC)` 将 `ts` 编译为 `ES5` 以便能够在浏览器中运行，同时进行类型检查；
 - 使用 `Babel` 来编译 `TS` ，使用 `TSC` 进行类型检查；
 
-这里的话使用第二种方式，让 `Babel` 和 `TSC` 各司其职。
+这里的话使用第二种方式，让 `Babel` 和 `TSC` 各司其职。 -->
+
+这里使用第三种方案，使用 Babel 编译 TypeScript，使用 TSC 进行类型检查。
 
 首先安装 `TypeScript` 以及 React 的 `type` ：
 
