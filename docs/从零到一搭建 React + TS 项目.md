@@ -1425,6 +1425,77 @@ build
 到这边开发环境基本已经搭建完成，下面介绍业务相关的一些配置。
 
 
+### 22) React 组件热更新
+
+HMR 也称为热模块替换，可以在不刷新页面的情况下，更新页面内容，同时保留状态，极大提升开发效率。
+
+注意，即使配置了 `devServer.hot = true`，还需要实现 `module.hot.accept` 接口，用于声明如何将模块安全地替换为最新代码。我们可以实现这个接口来获取更新后的模块。
+
+实际模块代码的替换逻辑可能非常复杂，幸运的是我们通常不太需要对此过多关注，因为业界许多 Webpack Loader 已经提供了针对不同资源的 HMR 功能，例如：
+
+- `style-loader` 内置 Css 模块热更
+- `vue-loader` 内置 Vue 模块热更
+- `react-hot-reload` 内置 React 模块热更接口
+
+对于 React 17 + Webpack5 技术栈，可以参考 CRA 源码，使用 `react-refresh-webpack-plugin` 热更新 react 组件。
+
+> `webpack-dev-server` 默认只有 live-reload 功能，需要使用额外的热更新插件实现热模块替换（即实现 `module.hot.accept` 接口）
+
+安装:
+
+```bash
+$ npm install -D @pmmmwh/react-refresh-webpack-plugin react-refresh
+```
+
+`webpack.dev.config.js` 配置如下:
+
+```js
+const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
+
+module.exports = {
+  plugins: [
+    new webpack.HotModuleReplacementPlugin(),
+    new ReactRefreshWebpackPlugin(),
+  ]
+}
+```
+
+### 23) 包体积分析
+
+在 Webpack 中，可以使用 `webpack-bundle-analyzer` 分析打包后体积。
+
+其原理是根据 Webpack 打包后的 stats 数据进行分析，在 Webpack compiler 的 `done hook` 进行处理：
+
+```js
+compiler.hooks.done.tapAsync('webpack-bundle-analyzer', stats => {
+  // ...
+})
+```
+
+使用 `ANALYZE` 环境变量配置 `webpack-bundle-analyzer`：
+
+```js
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+
+module.exports = {
+  // ..
+  plugins: [
+    process.env.ANALYZE && new BundleAnalyzerPlugin()
+  ].filter(Boolean)
+}
+```
+
+在 `package.json` 中添加 NPM scripts：
+
+```json
+{
+  "scripts": {
+    "report": "cross-env ANALYZE=true npm run build"
+  }
+}
+```
+
+> 一般在命令后面加 `--report` 参数，但也可以不加参数，而是通过环境变量的形式
 
 ## 二、业务相关配置
 
