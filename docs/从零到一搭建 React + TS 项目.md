@@ -2358,11 +2358,37 @@ React 常用状态管理库
 - Jotai
 - Zustand
 
-#### React-transition-group
+#### 获取数据
+
+**React-query**
+
+https://github.com/tannerlinsley/react-query
+
+**SWR**
+
+https://github.com/vercel/swr
+
+#### Hooks
+
+**React-use**
+
+https://github.com/streamich/react-use
+
+**ahooks**
+
+https://github.com/alibaba/hooks
+
+#### 动画库
+
+**React-transition-group**
 
 https://github.com/reactjs/react-transition-group
 
 https://reactcommunity.org/react-transition-group/css-transition
+
+**React-spring**
+
+https://github.com/pmndrs/react-spring
 
 ### 9) 配置网络请求库
 
